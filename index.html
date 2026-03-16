@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>BALLPARK LOG</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root{
+  --navy:#1B2A4A;--navy-dark:#0F1B31;--navy-light:#253A60;
+  --ivory:#FBF8F0;--ivory-dark:#EDE8DC;
+  --gold:#D4A843;--crimson:#C0392B;--green:#2C5F2E;
+  --text:#1a1a1a;--text-muted:#6b6b6b;--border:#E0DDD4;--white:#ffffff;
+  --bg:#FBF8F0;--card-bg:#ffffff;--card-border:#E0DDD4;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overscroll-behavior:none;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-attachment:fixed;background-size:cover;background-position:center;transition:background 0.3s;}
+body.bg-overlay::before{content:'';position:fixed;inset:0;background:var(--bg-overlay,rgba(251,248,240,0.88));z-index:0;pointer-events:none;}
+#root{position:relative;z-index:1;}
+
+/* ---- HEADER ---- */
+.header{background:var(--navy);position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.18);}
+.header-inner{max-width:960px;margin:0 auto;padding:11px 16px;display:flex;align-items:center;gap:10px;}
+.logo{display:flex;align-items:center;gap:9px;flex-shrink:0;}
+.logo-ball{width:30px;height:30px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.logo-text{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:3px;color:var(--gold);}
+.logo-sub{font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:-2px;}
+.header-nav{display:flex;gap:3px;flex:1;justify-content:flex-end;}
+.nav-tab{padding:7px 12px;border:none;background:transparent;color:rgba(255,255,255,0.55);font-size:12px;cursor:pointer;border-radius:6px;font-family:'Noto Sans JP',sans-serif;transition:all 0.18s;white-space:nowrap;min-height:36px;}
+.nav-tab.active{background:var(--gold);color:var(--navy);font-weight:700;}
+.nav-tab:hover:not(.active){color:white;background:rgba(255,255,255,0.1);}
+.nav-ext{padding:7px 11px;background:transparent;color:rgba(255,255,255,0.45);font-size:12px;border-radius:6px;font-family:'Noto Sans JP',sans-serif;border:1px solid rgba(255,255,255,0.15);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all 0.18s;white-space:nowrap;min-height:36px;}
+.nav-ext:hover{color:white;border-color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.06);}
+.icon-btn{background:transparent;border:none;color:rgba(255,255,255,0.45);cursor:pointer;font-size:18px;padding:6px;border-radius:6px;transition:color 0.15s;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.icon-btn:hover{color:var(--gold);}
+
+/* ---- BOTTOM NAV (mobile) ---- */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--navy);border-top:1px solid rgba(255,255,255,0.08);padding-bottom:env(safe-area-inset-bottom,0);}
+.bottom-nav-inner{display:flex;justify-content:space-around;padding:6px 0;}
+.bnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border:none;background:transparent;color:rgba(255,255,255,0.45);font-size:10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:color 0.18s;min-height:52px;border-radius:8px;}
+.bnav-tab .bnav-icon{font-size:20px;line-height:1;}
+.bnav-tab.active{color:var(--gold);}
+.bnav-tab.bnav-add{color:white;}
+.bnav-tab.bnav-add .bnav-icon-circle{width:38px;height:38px;background:var(--crimson);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 12px rgba(192,57,43,0.45);}
+
+/* ---- MAIN ---- */
+.main{max-width:960px;margin:0 auto;padding:18px 16px 90px;}
+
+/* ---- SEARCH BAR ---- */
+.search-wrap{position:relative;margin-bottom:14px;}
+.search-input{width:100%;padding:11px 14px 11px 42px;border:1px solid var(--card-border);border-radius:12px;background:var(--card-bg);color:var(--text);font-size:14px;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color 0.18s,box-shadow 0.18s;}
+.search-input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,42,74,0.1);}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;}
+.search-clear{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px;line-height:1;border-radius:4px;}
+.search-meta{font-size:12px;color:var(--text-muted);margin-bottom:10px;padding-left:2px;}
+.search-meta strong{color:var(--navy);}
+mark{background:#fff5b0;border-radius:2px;padding:0 2px;}
+
+/* ---- GAME CARDS ---- */
+.game-card{background:var(--card-bg);border-radius:14px;border:1px solid var(--card-border);margin-bottom:12px;overflow:hidden;cursor:pointer;transition:transform 0.18s,box-shadow 0.18s;-webkit-user-select:none;user-select:none;}
+@media(hover:hover){.game-card:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(27,42,74,0.13);}}
+.game-card:active{transform:scale(0.985);}
+.game-card-header{background:var(--navy);padding:9px 15px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.game-date{color:var(--gold);font-size:12px;font-weight:500;letter-spacing:0.8px;flex-shrink:0;}
+.game-stadium-badge{color:rgba(255,255,255,0.55);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.game-card-body{padding:13px 15px 11px;}
+.game-matchup{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.team-label{font-size:13px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.team-label.right{text-align:right;}
+.team-label.fav{color:var(--navy);}
+.score-display{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--navy);letter-spacing:2px;flex-shrink:0;}
+.vs-label{font-size:12px;color:var(--text-muted);flex-shrink:0;}
+.badge-row{display:flex;gap:6px;flex-wrap:wrap;}
+.badge{background:var(--ivory);border:1px solid var(--card-border);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--text-muted);}
+.badge.win{background:#eaf5eb;border-color:#b5d9b7;color:var(--green);font-weight:700;}
+.badge.lose{background:#fdf0ef;border-color:#f5c4be;color:var(--crimson);font-weight:700;}
+.badge.draw{background:var(--ivory-dark);color:var(--text-muted);font-weight:700;}
+.game-card-footer{padding:8px 15px;border-top:1px solid var(--ivory-dark);}
+.memo-preview{font-size:12px;color:var(--text-muted);line-height:1.55;}
+
+/* ---- FAB (desktop only) ---- */
+.fab{position:fixed;bottom:26px;right:26px;width:54px;height:54px;background:var(--crimson);color:white;border:none;border-radius:50%;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(192,57,43,0.38);display:flex;align-items:center;justify-content:center;transition:transform 0.18s;z-index:200;}
+.fab:hover{transform:scale(1.1);}
+
+/* ---- CARDS ---- */
+.card{background:var(--card-bg);border-radius:14px;border:1px solid var(--card-border);padding:18px;margin-bottom:14px;}
+.section-title{font-size:11px;font-weight:700;color:var(--navy);letter-spacing:2px;text-transform:uppercase;padding-bottom:9px;border-bottom:2px solid var(--gold);margin-bottom:13px;}
+
+/* ---- DETAIL ---- */
+.detail-hero{background:var(--navy);border-radius:14px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
+.detail-hero::before{content:'';position:absolute;right:-28px;top:-28px;width:150px;height:150px;border:2px solid rgba(212,168,67,0.12);border-radius:50%;}
+.detail-hero::after{content:'';position:absolute;right:18px;top:18px;width:82px;height:82px;border:1.5px solid rgba(212,168,67,0.08);border-radius:50%;}
+.detail-meta{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:13px;letter-spacing:0.5px;}
+.detail-matchup{display:flex;align-items:center;gap:12px;}
+.detail-team{flex:1;overflow:hidden;}
+.detail-team-label{font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:2px;letter-spacing:1px;text-transform:uppercase;}
+.detail-team-name{font-size:16px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.detail-team-name.winner{color:var(--gold);}
+.detail-score{font-family:'Bebas Neue',sans-serif;font-size:50px;color:var(--gold);letter-spacing:4px;line-height:1;text-align:center;flex-shrink:0;}
+.detail-seat{font-size:12px;color:rgba(255,255,255,0.45);margin-top:11px;}
+.result-banner{display:inline-block;margin-top:13px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;}
+.result-banner.win{background:rgba(44,95,46,0.25);color:#7ed67f;}
+.result-banner.lose{background:rgba(192,57,43,0.25);color:#f08080;}
+.result-banner.draw{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.55);}
+
+/* ---- FORMS ---- */
+.form-tabs{display:flex;gap:5px;margin-bottom:18px;flex-wrap:wrap;}
+.form-tab{padding:8px 15px;border-radius:8px;border:1px solid var(--card-border);cursor:pointer;font-family:inherit;font-size:13px;background:var(--ivory);color:var(--text);transition:all 0.15s;min-height:40px;}
+.form-tab.active{background:var(--navy);color:white;border-color:var(--navy);font-weight:700;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;}
+input,select,textarea{border:1px solid var(--card-border);border-radius:8px;padding:10px 12px;font-size:16px;font-family:'Noto Sans JP',sans-serif;background:var(--ivory);color:var(--text);outline:none;transition:border-color 0.18s;width:100%;-webkit-appearance:none;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--navy);background:white;}
+.btn-row{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+.btn-primary{background:var(--navy);color:white;border:none;border-radius:8px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:background 0.18s;min-height:44px;}
+.btn-primary:hover{background:var(--navy-dark);}
+.btn-secondary{background:transparent;color:var(--navy);border:1px solid var(--card-border);border-radius:8px;padding:12px 22px;font-size:14px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all 0.18s;min-height:44px;}
+.btn-secondary:hover{background:var(--ivory);border-color:var(--navy);}
+.btn-danger{background:transparent;color:var(--crimson);border:1px solid var(--crimson);border-radius:8px;padding:12px 22px;font-size:14px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all 0.18s;min-height:44px;}
+.btn-danger:hover{background:#fdf0ef;}
+
+/* ---- FOOD ---- */
+.food-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--ivory-dark);}
+.food-icon{width:40px;height:40px;background:var(--ivory);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.food-name{flex:1;font-weight:500;font-size:14px;}
+.food-price{color:var(--text-muted);font-size:13px;font-weight:500;flex-shrink:0;}
+.food-remove{background:none;border:none;color:#ccc;cursor:pointer;font-size:22px;padding:4px 6px;transition:color 0.15s;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;}
+.food-remove:hover{color:var(--crimson);}
+.food-total{text-align:right;padding-top:10px;font-weight:700;color:var(--navy);font-size:14px;}
+.food-add-row{display:flex;gap:8px;margin-top:12px;}
+
+/* ---- PHOTOS ---- */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.photo-thumb{aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-del-btn{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.65);color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;}
+.photo-thumb:hover .photo-del-btn,.photo-thumb.touch-active .photo-del-btn{opacity:1;}
+.upload-zone{border:2px dashed var(--card-border);border-radius:12px;padding:30px 20px;text-align:center;cursor:pointer;background:var(--ivory);transition:border-color 0.18s;margin-top:11px;}
+.upload-zone:hover,.upload-zone:active{border-color:var(--navy);background:var(--ivory-dark);}
+
+/* ---- LIGHTBOX ---- */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.94);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.lightbox img{max-width:100%;max-height:88vh;border-radius:8px;}
+.lightbox-close{position:absolute;top:16px;right:18px;background:rgba(255,255,255,0.12);border:none;color:white;font-size:22px;cursor:pointer;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+
+/* ---- STATS ---- */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px;}
+.stat-card{background:var(--card-bg);border-radius:14px;border:1px solid var(--card-border);padding:16px 12px;text-align:center;}
+.stat-big{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--navy);line-height:1;margin-bottom:4px;}
+.stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;}
+.rank-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--ivory-dark);}
+.rank-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.rank-badge.gold{background:var(--gold);color:var(--navy);}
+.rank-badge.silver{background:#C0C0C0;color:#444;}
+.rank-badge.bronze{background:#CD7F32;color:white;}
+.rank-badge.other{background:var(--ivory-dark);color:var(--text-muted);}
+.rank-name{flex:1;font-size:13px;font-weight:500;}
+.rank-bar-wrap{display:flex;align-items:center;gap:8px;}
+.rank-bar-bg{background:var(--ivory);border-radius:4px;height:7px;width:80px;overflow:hidden;flex-shrink:0;}
+.rank-bar-fill{background:var(--navy);height:100%;border-radius:4px;transition:width 0.5s;}
+.rank-count{font-size:12px;color:var(--text-muted);min-width:36px;text-align:right;}
+.wl-row{display:flex;gap:10px;align-items:center;margin-bottom:13px;}
+.wl-box{flex:1;border-radius:12px;padding:13px 10px;text-align:center;}
+.wl-box.w{background:#eaf5eb;border:1px solid #b5d9b7;}
+.wl-box.l{background:#fdf0ef;border:1px solid #f5c4be;}
+.wl-box.d{background:var(--ivory-dark);border:1px solid var(--card-border);}
+.wl-num{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;}
+.wl-box.w .wl-num{color:var(--green);}
+.wl-box.l .wl-num{color:var(--crimson);}
+.wl-box.d .wl-num{color:var(--text-muted);}
+.wl-lbl{font-size:11px;font-weight:700;letter-spacing:1px;margin-top:2px;}
+.wl-box.w .wl-lbl{color:var(--green);}
+.wl-box.l .wl-lbl{color:var(--crimson);}
+.wl-box.d .wl-lbl{color:var(--text-muted);}
+
+/* ---- WEATHER ---- */
+.weather-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;}
+.weather-card{background:var(--card-bg);border-radius:14px;border:1px solid var(--card-border);padding:14px;}
+.weather-stadium{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:9px;}
+.weather-days{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.weather-day{flex-shrink:0;text-align:center;background:var(--ivory);border-radius:9px;padding:8px 9px;min-width:54px;}
+.weather-day-label{font-size:10px;color:var(--text-muted);margin-bottom:5px;font-weight:700;}
+.weather-day-icon{font-size:20px;margin-bottom:3px;line-height:1;}
+.weather-day-hi{font-size:12px;font-weight:700;color:var(--crimson);}
+.weather-day-lo{font-size:11px;color:#5e9cff;margin-top:1px;}
+.weather-day-rain{font-size:10px;color:#5e9cff;margin-top:2px;}
+
+/* ---- SETTINGS MODAL ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0;}
+.modal{background:var(--white);border-radius:22px 22px 0 0;padding:22px 20px;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.modal-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 18px;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:8px;color:var(--navy);}
+.fav-team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0;}
+.fav-team-btn{padding:11px 8px;border:1.5px solid var(--card-border);border-radius:10px;background:var(--ivory);font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;transition:all 0.15s;text-align:center;color:var(--text);line-height:1.4;min-height:44px;}
+.fav-team-btn.selected{border-color:var(--gold);background:#fdf8ec;font-weight:700;color:var(--navy);}
+
+/* ---- BACKGROUND PICKER ---- */
+.bg-section{margin-top:20px;padding-top:18px;border-top:1px solid var(--card-border);}
+.bg-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;}
+.bg-preset{border:2px solid transparent;border-radius:10px;cursor:pointer;overflow:hidden;aspect-ratio:1.6;position:relative;transition:border-color 0.15s;}
+.bg-preset.selected{border-color:var(--gold);}
+.bg-preset .bg-swatch{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.bg-preset-label{font-size:10px;color:var(--text-muted);text-align:center;margin-top:4px;}
+.bg-upload-zone{border:2px dashed var(--card-border);border-radius:10px;padding:18px 10px;text-align:center;cursor:pointer;background:var(--ivory);transition:border-color 0.18s;margin-top:8px;}
+.bg-upload-zone:hover{border-color:var(--navy);}
+.bg-current-preview{width:100%;height:70px;border-radius:10px;border:1px solid var(--card-border);object-fit:cover;margin-top:8px;}
+.overlay-row{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.overlay-label{font-size:13px;color:var(--text-muted);flex:1;}
+input[type=range]{padding:0;height:4px;border-radius:2px;background:var(--ivory-dark);border:none;}
+
+/* BACK / EMPTY */
+.back-btn{background:none;border:none;color:var(--navy);cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:14px;font-family:inherit;font-size:14px;font-weight:700;padding:4px 0;min-height:36px;}
+.empty-state{text-align:center;padding:52px 20px;}
+.empty-icon{font-size:46px;margin-bottom:13px;}
+.empty-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.empty-desc{font-size:13px;color:var(--text-muted);}
+
+/* ---- IFRAME VIEW ---- */
+.iframe-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;}
+.iframe-toolbar-title{font-size:13px;font-weight:700;color:var(--navy);}
+.iframe-open-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:var(--navy);color:white;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background 0.18s;}
+.iframe-open-btn:hover{background:var(--navy-dark);}
+.iframe-wrap{border-radius:14px;overflow:hidden;border:1px solid var(--card-border);background:var(--card-bg);position:relative;}
+.iframe-wrap iframe{display:block;width:100%;border:none;}
+.iframe-blocked{display:none;flex-direction:column;align-items:center;justify-content:center;padding:44px 20px;text-align:center;}
+.iframe-blocked-icon{font-size:40px;margin-bottom:14px;}
+.iframe-blocked-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.iframe-blocked-desc{font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.7;}
+
+/* ---- SWALLOWS VIEW ---- */
+.swallows-hero{background:linear-gradient(135deg,#00487C 0%,#003361 50%,#001f40 100%);border-radius:14px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden;}
+.swallows-hero::before{content:'つばめ';position:absolute;right:-8px;top:-12px;font-size:100px;opacity:0.07;pointer-events:none;}
+.swallows-hero-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--gold);margin-bottom:3px;}
+.swallows-hero-sub{font-size:12px;color:rgba(255,255,255,0.45);letter-spacing:1px;}
+.link-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.link-card{background:var(--card-bg);border-radius:14px;border:1px solid var(--card-border);padding:16px 12px;text-align:center;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform 0.18s,box-shadow 0.18s;cursor:pointer;}
+.link-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(27,42,74,0.12);}
+.link-card-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:2px;}
+.link-card-name{font-size:12px;font-weight:700;color:var(--navy);line-height:1.4;}
+.link-card-desc{font-size:10px;color:var(--text-muted);line-height:1.4;}
+
+/* ---- MOBILE OVERRIDES ---- */
+@media(max-width:640px){
+  .header-nav{display:none;}
+  .bottom-nav{display:block;}
+  .fab{display:none;}
+  .main{padding:14px 12px 82px;}
+  .form-grid{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .photo-grid{grid-template-columns:repeat(3,1fr);}
+  .detail-score{font-size:38px;}
+  .logo-sub{display:none;}
+  .rank-bar-bg{width:55px;}
+  .weather-grid{grid-template-columns:1fr;}
+  .card{padding:15px;}
+  .bg-presets{grid-template-columns:repeat(4,1fr);}
+  .photo-del-btn{opacity:1;}
+  .link-cards{grid-template-columns:repeat(3,1fr);}
+}
+@media(min-width:641px){
+  .modal-overlay{align-items:center;padding:20px;}
+  .modal{border-radius:18px;max-width:460px;}
+  .modal-handle{display:none;}
+}
+/* bottom nav scrollable for many tabs */
+.bottom-nav-inner{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;justify-content:flex-start;padding:6px 4px;}
+.bottom-nav-inner::-webkit-scrollbar{display:none;}
+.bnav-tab{flex-shrink:0;min-width:52px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback,useMemo}=React;
+
+const TEAMS=['読売ジャイアンツ','横浜DeNAベイスターズ','阪神タイガース','広島東洋カープ','中日ドラゴンズ','東京ヤクルトスワローズ','福岡ソフトバンクホークス','東北楽天ゴールデンイーグルス','千葉ロッテマリーンズ','埼玉西武ライオンズ','北海道日本ハムファイターズ','オリックス・バファローズ'];
+const STADIUMS=['東京ドーム','バンテリンドームナゴヤ','甲子園球場','マツダスタジアム','横浜スタジアム','明治神宮野球場','みずほPayPayドーム福岡','楽天モバイルパーク宮城','ZOZOマリンスタジアム','ベルーナドーム','エスコンフィールドHOKKAIDO','京セラドーム大阪'];
+const WEATHER=['☀️ 晴れ','⛅ 曇り','🌧️ 雨中断あり','🌧️ 雨','❄️ 雪','🌙 ナイター（晴れ）','🌙 ナイター（曇り）'];
+const FOOD_ICONS=['🍱','🌭','🍗','🍜','🍣','🍺','🥤','🍦','🍿','🍔','🥜','🍙','🍤','🧆','🥪'];
+const STADIUM_COORDS={
+  '東京ドーム':{lat:35.7056,lng:139.7517,city:'東京'},
+  'バンテリンドームナゴヤ':{lat:35.1850,lng:136.9469,city:'名古屋'},
+  '甲子園球場':{lat:34.7196,lng:135.3609,city:'西宮'},
+  'マツダスタジアム':{lat:34.3916,lng:132.4844,city:'広島'},
+  '横浜スタジアム':{lat:35.4438,lng:139.6381,city:'横浜'},
+  '明治神宮野球場':{lat:35.6735,lng:139.7167,city:'東京'},
+  'みずほPayPayドーム福岡':{lat:33.5952,lng:130.3640,city:'福岡'},
+  '楽天モバイルパーク宮城':{lat:38.2586,lng:140.9003,city:'仙台'},
+  'ZOZOマリンスタジアム':{lat:35.6451,lng:140.0314,city:'千葉'},
+  'ベルーナドーム':{lat:35.7762,lng:139.4126,city:'所沢'},
+  'エスコンフィールドHOKKAIDO':{lat:43.3963,lng:141.6364,city:'北広島'},
+  '京セラドーム大阪':{lat:34.6668,lng:135.4757,city:'大阪'}
+};
+
+const BG_PRESETS=[
+  {id:'default',label:'デフォルト',style:{background:'#FBF8F0'},icon:'🏟️',overlay:0},
+  {id:'night',label:'ナイター',style:{background:'#0d1b2a'},icon:'🌙',overlay:0,dark:true},
+  {id:'grass',label:'グラウンド',style:{background:'linear-gradient(135deg,#2d6a4f 0%,#1b4332 50%,#40916c 100%)'},icon:'⚾',overlay:0.7},
+  {id:'dusk',label:'黄昏',style:{background:'linear-gradient(160deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%)'},icon:'🌆',overlay:0,dark:true},
+  {id:'sand',label:'サンド',style:{background:'linear-gradient(135deg,#e9c46a 0%,#f4a261 50%,#e76f51 100%)'},icon:'🌅',overlay:0.65},
+  {id:'sky',label:'青空',style:{background:'linear-gradient(160deg,#90e0ef 0%,#caf0f8 50%,#ade8f4 100%)'},icon:'☀️',overlay:0.5},
+  {id:'stadium',label:'夜空',style:{background:'linear-gradient(180deg,#0a0a1a 0%,#1a0533 50%,#0d0d2b 100%)'},icon:'✨',overlay:0,dark:true},
+  {id:'custom',label:'画像を選択',style:{background:'#e8e8e8'},icon:'🖼️',overlay:0.6},
+];
+
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function loadGames(){try{const r=localStorage.getItem('bplog_v2');return r?JSON.parse(r):[]}catch{return[]}}
+function saveGames(d){localStorage.setItem('bplog_v2',JSON.stringify(d));}
+function loadFavTeam(){return localStorage.getItem('bplog_fav')||'';}
+function saveFavTeam(t){localStorage.setItem('bplog_fav',t);}
+function loadBgPref(){try{const r=localStorage.getItem('bplog_bg');return r?JSON.parse(r):{id:'default',opacity:0,img:null}}catch{return{id:'default',opacity:0,img:null}}}
+function saveBgPref(p){localStorage.setItem('bplog_bg',JSON.stringify(p));}
+
+function formatDate(s){
+  if(!s)return'';
+  const d=new Date(s+'T00:00:00');
+  return d.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+}
+function getResult(g,myTeam){
+  if(!myTeam||g.homeScore===''||g.awayScore==='')return null;
+  const h=parseInt(g.homeScore),a=parseInt(g.awayScore);
+  if(isNaN(h)||isNaN(a))return null;
+  const isHome=g.homeTeam===myTeam;
+  const my=isHome?h:a,opp=isHome?a:h;
+  if(my>opp)return'WIN';if(my<opp)return'LOSE';return'DRAW';
+}
+function wmoIcon(code){
+  if(code===0)return'☀️';if(code<=2)return'⛅';if(code<=3)return'☁️';
+  if(code<=48)return'🌫️';if(code<=57)return'🌦️';if(code<=67)return'🌧️';
+  if(code<=77)return'❄️';if(code<=82)return'🌦️';if(code<=86)return'🌨️';
+  return'⛈️';
+}
+
+/* ---- highlight matched text ---- */
+function Highlight({text,q}){
+  if(!q||!text)return React.createElement(React.Fragment,null,text||'');
+  const parts=text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'));
+  return React.createElement(React.Fragment,null,...parts.map((p,i)=>
+    p.toLowerCase()===q.toLowerCase()
+      ? React.createElement('mark',{key:i},p)
+      : p
+  ));
+}
+
+/* ---- search util ---- */
+function gameMatchesQuery(g,q){
+  if(!q)return true;
+  const lq=q.toLowerCase();
+  return(
+    (g.homeTeam||'').toLowerCase().includes(lq)||
+    (g.awayTeam||'').toLowerCase().includes(lq)||
+    (g.stadium||'').toLowerCase().includes(lq)||
+    (g.memo||'').toLowerCase().includes(lq)||
+    (g.seat||'').toLowerCase().includes(lq)||
+    (g.date||'').includes(lq)||
+    (g.foods||[]).some(f=>(f.name||'').toLowerCase().includes(lq))
+  );
+}
+
+/* ---- apply background ---- */
+function applyBg(pref){
+  const body=document.body;
+  const preset=BG_PRESETS.find(p=>p.id===pref.id)||BG_PRESETS[0];
+  body.classList.remove('bg-overlay');
+  body.style.backgroundImage='';
+  body.style.background='';
+  document.documentElement.style.setProperty('--bg','#FBF8F0');
+  document.documentElement.style.setProperty('--card-bg','#ffffff');
+  document.documentElement.style.setProperty('--card-border','#E0DDD4');
+  document.documentElement.style.setProperty('--text','#1a1a1a');
+  document.documentElement.style.setProperty('--text-muted','#6b6b6b');
+  if(pref.id==='default'){return;}
+  const overlayOpacity=pref.opacity!=null?pref.opacity:preset.overlay;
+  if(pref.id==='custom'&&pref.img){
+    body.style.backgroundImage=`url(${pref.img})`;
+    body.style.backgroundSize='cover';
+    body.style.backgroundAttachment='fixed';
+    body.style.backgroundPosition='center';
+    document.documentElement.style.setProperty('--bg-overlay',`rgba(251,248,240,${overlayOpacity})`);
+    body.classList.add('bg-overlay');
+  } else if(pref.id!=='custom'){
+    const s=preset.style;
+    if(s.background) body.style.background=s.background;
+    document.documentElement.style.setProperty('--bg-overlay',`rgba(251,248,240,${overlayOpacity})`);
+    body.classList.add('bg-overlay');
+    if(preset.dark&&overlayOpacity<0.5){
+      document.documentElement.style.setProperty('--card-bg','rgba(30,40,60,0.9)');
+      document.documentElement.style.setProperty('--card-border','rgba(255,255,255,0.1)');
+      document.documentElement.style.setProperty('--text','#f0f0f0');
+      document.documentElement.style.setProperty('--text-muted','rgba(255,255,255,0.5)');
+      document.documentElement.style.setProperty('--bg','#0d1b2a');
+    }
+  }
+}
+
+/* ---- GameCard ---- */
+function GameCard({game,myTeam,onClick,query}){
+  const hasScore=game.homeScore!==''&&game.awayScore!=='';
+  const result=getResult(game,myTeam);
+  const foodTotal=(game.foods||[]).reduce((s,f)=>s+(parseInt(f.price)||0),0);
+  const q=query||'';
+  return(
+    <div className="game-card" onClick={()=>onClick(game)}>
+      <div className="game-card-header">
+        <span className="game-date">{formatDate(game.date)}</span>
+        <span className="game-stadium-badge">📍 <Highlight text={game.stadium} q={q}/></span>
+      </div>
+      <div className="game-card-body">
+        <div className="game-matchup">
+          <span className={`team-label${myTeam&&game.homeTeam===myTeam?' fav':''}`}><Highlight text={game.homeTeam} q={q}/></span>
+          {hasScore?<span className="score-display">{game.homeScore}–{game.awayScore}</span>:<span className="vs-label">VS</span>}
+          <span className={`team-label right${myTeam&&game.awayTeam===myTeam?' fav':''}`}><Highlight text={game.awayTeam} q={q}/></span>
+        </div>
+        <div className="badge-row">
+          {game.weather&&<span className="badge">{game.weather}</span>}
+          {game.seat&&<span className="badge">🪑 <Highlight text={game.seat} q={q}/></span>}
+          {(game.foods||[]).length>0&&<span className="badge">🍱 {game.foods.length}品{foodTotal>0?` / ¥${foodTotal.toLocaleString()}`:''}</span>}
+          {(game.photos||[]).length>0&&<span className="badge">📷 {game.photos.length}枚</span>}
+          {result==='WIN'&&<span className="badge win">✓ 勝利</span>}
+          {result==='LOSE'&&<span className="badge lose">✗ 敗戦</span>}
+          {result==='DRAW'&&<span className="badge draw">– 引き分け</span>}
+        </div>
+      </div>
+      {game.memo&&(
+        <div className="game-card-footer">
+          <p className="memo-preview">💬 <Highlight text={game.memo.length>70?game.memo.slice(0,70)+'...':game.memo} q={q}/></p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---- AI Fetch ---- */
+async function fetchGameInfo(date, stadium) {
+  const dateObj = new Date(date + 'T00:00:00');
+  const y = dateObj.getFullYear(), m = dateObj.getMonth()+1, d = dateObj.getDate();
+  const dateStr = `${y}年${m}月${d}日`;
+  const prompt = `以下の条件でプロ野球の試合結果を調べてください。
+日付: ${dateStr}
+球場: ${stadium}
+
+Webを検索して、その日その球場で行われた試合の情報を取得してください。
+以下のJSON形式のみで返答してください。他のテキストは一切含めないでください。
+{
+  "homeTeam": "ホームチーム名（12球団の正式名称）",
+  "awayTeam": "ビジターチーム名（12球団の正式名称）",
+  "homeScore": "ホームチームの得点（数字のみ）",
+  "awayScore": "ビジターチームの得点（数字のみ）",
+  "summary": "試合の総評・見どころを200字程度で（ホームラン、好投、逆転劇など見どころを含めて）",
+  "found": true
+}
+試合が見つからない場合は {"found": false} のみ返してください。
+チーム名は必ず次のいずれかを使用: 読売ジャイアンツ, 横浜DeNAベイスターズ, 阪神タイガース, 広島東洋カープ, 中日ドラゴンズ, 東京ヤクルトスワローズ, 福岡ソフトバンクホークス, 東北楽天ゴールデンイーグルス, 千葉ロッテマリーンズ, 埼玉西武ライオンズ, 北海道日本ハムファイターズ, オリックス・バファローズ`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!resp.ok) throw new Error('API error: ' + resp.status);
+  const data = await resp.json();
+  const textBlock = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  const jsonMatch = textBlock.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('JSON not found in response');
+  return JSON.parse(jsonMatch[0]);
+}
+
+/* ---- AddForm ---- */
+function AddForm({initial,onSave,onCancel}){
+  const blank={date:new Date().toISOString().slice(0,10),homeTeam:'',awayTeam:'',stadium:'',homeScore:'',awayScore:'',weather:'',seat:'',memo:''};
+  const[form,setForm]=useState(initial?{...initial}:blank);
+  const[foods,setFoods]=useState(initial?.foods||[]);
+  const[photos,setPhotos]=useState(initial?.photos||[]);
+  const[ftab,setFtab]=useState('basic');
+  const[foodName,setFoodName]=useState('');
+  const[foodPrice,setFoodPrice]=useState('');
+  const[fetchState,setFetchState]=useState('idle'); // idle | loading | done | error
+  const[fetchResult,setFetchResult]=useState(null);
+  const[fetchError,setFetchError]=useState('');
+  const fileRef=useRef();
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  const canFetch = form.date && form.stadium;
+
+  const handleFetch = async () => {
+    setFetchState('loading');
+    setFetchResult(null);
+    setFetchError('');
+    try {
+      const result = await fetchGameInfo(form.date, form.stadium);
+      if (!result.found) {
+        setFetchState('error');
+        setFetchError('該当する試合が見つかりませんでした。手動で入力してください。');
+        return;
+      }
+      setFetchResult(result);
+      setFetchState('done');
+    } catch(e) {
+      setFetchState('error');
+      setFetchError('取得に失敗しました: ' + e.message);
+    }
+  };
+
+  const applyFetchResult = () => {
+    if (!fetchResult) return;
+    setForm(f => ({
+      ...f,
+      homeTeam: fetchResult.homeTeam || f.homeTeam,
+      awayTeam: fetchResult.awayTeam || f.awayTeam,
+      homeScore: fetchResult.homeScore != null ? String(fetchResult.homeScore) : f.homeScore,
+      awayScore: fetchResult.awayScore != null ? String(fetchResult.awayScore) : f.awayScore,
+      memo: fetchResult.summary ? (f.memo ? f.memo + '\n\n【試合総評】\n' + fetchResult.summary : '【試合総評】\n' + fetchResult.summary) : f.memo,
+    }));
+    setFetchState('applied');
+  };
+
+  const addFood=()=>{
+    if(!foodName.trim())return;
+    const icon=FOOD_ICONS[Math.floor(Math.random()*FOOD_ICONS.length)];
+    setFoods(fs=>[...fs,{id:genId(),name:foodName.trim(),price:foodPrice,emoji:icon}]);
+    setFoodName('');setFoodPrice('');
+  };
+  const handleFiles=e=>{
+    Array.from(e.target.files).forEach(file=>{
+      const r=new FileReader();
+      r.onload=ev=>setPhotos(ps=>[...ps,{id:genId(),src:ev.target.result,name:file.name}]);
+      r.readAsDataURL(file);
+    });
+    e.target.value='';
+  };
+  const save=()=>{
+    if(!form.homeTeam||!form.awayTeam||!form.stadium||!form.date){alert('日付・球場・ホーム・ビジターチームは必須です');return;}
+    onSave({...form,foods,photos,id:form.id||genId()});
+  };
+  const tabs=[{key:'basic',label:'⚾ 試合情報'},{key:'food',label:'🍱 グルメ'},{key:'photo',label:'📷 写真'}];
+  return(
+    <div className="card">
+      <div className="form-tabs">
+        {tabs.map(t=><button key={t.key} className={`form-tab${ftab===t.key?' active':''}`} onClick={()=>setFtab(t.key)}>{t.label}</button>)}
+      </div>
+      {ftab==='basic'&&<>
+        <div className="section-title">試合情報</div>
+        <div className="form-grid">
+          <div className="form-group"><label className="form-label">日付 *</label><input type="date" value={form.date} onChange={e=>set('date',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">球場 *</label><select value={form.stadium} onChange={e=>set('stadium',e.target.value)}><option value="">選択してください</option>{STADIUMS.map(s=><option key={s}>{s}</option>)}</select></div>
+        </div>
+
+        {/* AI FETCH PANEL */}
+        {canFetch && (
+          <div style={{background:'linear-gradient(135deg,#1B2A4A,#253A60)',borderRadius:'12px',padding:'14px 16px',marginBottom:'14px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px'}}>
+              <div>
+                <div style={{color:'var(--gold)',fontWeight:700,fontSize:'13px',marginBottom:'3px'}}>✨ 試合結果を自動取得</div>
+                <div style={{color:'rgba(255,255,255,0.5)',fontSize:'11px'}}>Web検索で対戦結果・総評を取得してフォームに反映します</div>
+              </div>
+              {fetchState !== 'applied' && (
+                <button onClick={handleFetch} disabled={fetchState==='loading'}
+                  style={{background:fetchState==='loading'?'rgba(212,168,67,0.4)':'var(--gold)',color:'var(--navy)',border:'none',borderRadius:'8px',padding:'9px 14px',fontFamily:'inherit',fontSize:'12px',fontWeight:700,cursor:fetchState==='loading'?'default':'pointer',flexShrink:0,minWidth:'80px',transition:'background 0.18s'}}>
+                  {fetchState==='loading'?'取得中...':'🔍 取得する'}
+                </button>
+              )}
+              {fetchState === 'applied' && (
+                <span style={{color:'#7ed67f',fontSize:'12px',fontWeight:700}}>✓ 反映済み</span>
+              )}
+            </div>
+
+            {fetchState==='loading' && (
+              <div style={{marginTop:'12px',color:'rgba(255,255,255,0.6)',fontSize:'12px',display:'flex',alignItems:'center',gap:'8px'}}>
+                <span style={{display:'inline-block',animation:'spin 1s linear infinite',fontSize:'14px'}}>⟳</span>
+                SportsNavi などから試合情報を検索中...
+              </div>
+            )}
+
+            {fetchState==='done' && fetchResult && (
+              <div style={{marginTop:'12px',background:'rgba(255,255,255,0.07)',borderRadius:'9px',padding:'12px 14px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'8px'}}>
+                  <span style={{color:'white',fontWeight:700,fontSize:'14px',flex:1}}>{fetchResult.homeTeam}</span>
+                  <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:'24px',color:'var(--gold)',letterSpacing:'2px'}}>{fetchResult.homeScore}–{fetchResult.awayScore}</span>
+                  <span style={{color:'white',fontWeight:700,fontSize:'14px',flex:1,textAlign:'right'}}>{fetchResult.awayTeam}</span>
+                </div>
+                {fetchResult.summary && (
+                  <p style={{color:'rgba(255,255,255,0.65)',fontSize:'12px',lineHeight:'1.7',marginBottom:'10px'}}>{fetchResult.summary}</p>
+                )}
+                <button onClick={applyFetchResult} style={{background:'var(--gold)',color:'var(--navy)',border:'none',borderRadius:'7px',padding:'8px 16px',fontFamily:'inherit',fontSize:'13px',fontWeight:700,cursor:'pointer',width:'100%'}}>
+                  ↓ フォームに反映する
+                </button>
+              </div>
+            )}
+
+            {fetchState==='error' && (
+              <div style={{marginTop:'10px',color:'#f08080',fontSize:'12px'}}>{fetchError}</div>
+            )}
+          </div>
+        )}
+        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+
+        <div className="form-grid">
+          <div className="form-group"><label className="form-label">ホームチーム *</label><select value={form.homeTeam} onChange={e=>set('homeTeam',e.target.value)}><option value="">選択してください</option>{TEAMS.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">ビジターチーム *</label><select value={form.awayTeam} onChange={e=>set('awayTeam',e.target.value)}><option value="">選択してください</option>{TEAMS.map(t=><option key={t}>{t}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">ホームスコア</label><input type="number" min="0" max="99" value={form.homeScore} onChange={e=>set('homeScore',e.target.value)} placeholder="0"/></div>
+          <div className="form-group"><label className="form-label">ビジタースコア</label><input type="number" min="0" max="99" value={form.awayScore} onChange={e=>set('awayScore',e.target.value)} placeholder="0"/></div>
+          <div className="form-group"><label className="form-label">天気</label><select value={form.weather} onChange={e=>set('weather',e.target.value)}><option value="">選択してください</option>{WEATHER.map(w=><option key={w}>{w}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">座席</label><input type="text" value={form.seat} onChange={e=>set('seat',e.target.value)} placeholder="例: 1塁側内野"/></div>
+        </div>
+        <div className="form-group"><label className="form-label">観戦メモ・感想</label><textarea rows="5" value={form.memo} onChange={e=>set('memo',e.target.value)} placeholder="今日の試合の印象的なシーン、雰囲気など..." style={{resize:'vertical'}}/></div>
+      </>}
+      {ftab==='food'&&<>
+        <div className="section-title">球場グルメ記録</div>
+        {foods.length===0&&<p style={{color:'var(--text-muted)',fontSize:'14px',textAlign:'center',padding:'16px 0'}}>まだグルメが登録されていません</p>}
+        {foods.map(f=>(
+          <div key={f.id} className="food-item">
+            <div className="food-icon">{f.emoji}</div>
+            <div className="food-name">{f.name}</div>
+            {f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}
+            <button className="food-remove" onClick={()=>setFoods(fs=>fs.filter(x=>x.id!==f.id))}>×</button>
+          </div>
+        ))}
+        {foods.length>0&&(()=>{const t=foods.reduce((s,f)=>s+(parseInt(f.price)||0),0);return t>0?<div className="food-total">合計 ¥{t.toLocaleString()}</div>:null;})()}
+        <div className="food-add-row">
+          <input type="text" value={foodName} onChange={e=>setFoodName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addFood()} placeholder="メニュー名"/>
+          <input type="number" value={foodPrice} onChange={e=>setFoodPrice(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addFood()} placeholder="値段" style={{width:'100px',flex:'none'}}/>
+          <button className="btn-primary" onClick={addFood} style={{flexShrink:0,padding:'10px 14px'}}>追加</button>
+        </div>
+      </>}
+      {ftab==='photo'&&<>
+        <div className="section-title">写真 · アルバム</div>
+        {photos.length>0&&<div className="photo-grid" style={{marginBottom:'10px'}}>{photos.map(p=>(
+          <div key={p.id} className="photo-thumb">
+            <img src={p.src} alt={p.name}/>
+            <button className="photo-del-btn" onClick={()=>setPhotos(ps=>ps.filter(x=>x.id!==p.id))}>×</button>
+          </div>
+        ))}</div>}
+        <input type="file" accept="image/*" multiple ref={fileRef} style={{display:'none'}} onChange={handleFiles}/>
+        <div className="upload-zone" onClick={()=>fileRef.current.click()}>
+          <div style={{fontSize:'30px',marginBottom:'7px'}}>📷</div>
+          <div style={{fontWeight:700,fontSize:'14px',marginBottom:'3px'}}>写真を追加する</div>
+          <div style={{fontSize:'12px',color:'var(--text-muted)'}}>クリックしてファイルを選択（複数選択可）</div>
+        </div>
+      </>}
+      <div className="btn-row">
+        <button className="btn-secondary" onClick={onCancel}>キャンセル</button>
+        <button className="btn-primary" onClick={save}>保存する ✓</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---- GameDetail ---- */
+function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
+  const[lightbox,setLightbox]=useState(null);
+  const h=parseInt(game.homeScore),a=parseInt(game.awayScore);
+  const hasScore=game.homeScore!==''&&game.awayScore!=='';
+  const homeWin=hasScore&&h>a,awayWin=hasScore&&a>h;
+  const result=getResult(game,myTeam);
+  const foodTotal=(game.foods||[]).reduce((s,f)=>s+(parseInt(f.price)||0),0);
+  return(
+    <div>
+      <button className="back-btn" onClick={onBack}>← 一覧へ戻る</button>
+      <div className="detail-hero">
+        <div className="detail-meta">{formatDate(game.date)}{game.stadium&&` · 📍 ${game.stadium}`}{game.weather&&` · ${game.weather}`}</div>
+        <div className="detail-matchup">
+          <div className="detail-team"><div className="detail-team-label">HOME</div><div className={`detail-team-name${homeWin?' winner':''}`}>{game.homeTeam}</div></div>
+          <div>{hasScore?<div className="detail-score">{game.homeScore}–{game.awayScore}</div>:<div style={{fontSize:'18px',color:'rgba(255,255,255,0.25)',textAlign:'center'}}>VS</div>}</div>
+          <div className="detail-team" style={{textAlign:'right'}}><div className="detail-team-label">VISITOR</div><div className={`detail-team-name${awayWin?' winner':''}`}>{game.awayTeam}</div></div>
+        </div>
+        {game.seat&&<div className="detail-seat">🪑 {game.seat}</div>}
+        {result&&<div className={`result-banner ${result==='WIN'?'win':result==='LOSE'?'lose':'draw'}`}>{result==='WIN'?'🎉 勝利！':result==='LOSE'?'😔 敗戦':'🤝 引き分け'}</div>}
+      </div>
+      {game.memo&&<div className="card"><div className="section-title">観戦メモ</div><p style={{fontSize:'15px',lineHeight:'1.9',whiteSpace:'pre-wrap'}}>{game.memo}</p></div>}
+      {(game.foods||[]).length>0&&(
+        <div className="card">
+          <div className="section-title">球場グルメ ({game.foods.length}品)</div>
+          {game.foods.map(f=><div key={f.id} className="food-item"><div className="food-icon">{f.emoji}</div><div className="food-name">{f.name}</div>{f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}</div>)}
+          {foodTotal>0&&<div className="food-total">合計 ¥{foodTotal.toLocaleString()}</div>}
+        </div>
+      )}
+      {(game.photos||[]).length>0&&(
+        <div className="card">
+          <div className="section-title">フォトアルバム ({game.photos.length}枚)</div>
+          <div className="photo-grid">{game.photos.map(p=><div key={p.id} className="photo-thumb" onClick={()=>setLightbox(p.src)}><img src={p.src} alt={p.name}/></div>)}</div>
+        </div>
+      )}
+      <div className="btn-row">
+        <button className="btn-danger" onClick={()=>onDelete(game.id)}>削除する</button>
+        <button className="btn-primary" onClick={()=>onEdit(game)}>編集する</button>
+      </div>
+      {lightbox&&<div className="lightbox" onClick={()=>setLightbox(null)}><button className="lightbox-close" onClick={()=>setLightbox(null)}>×</button><img src={lightbox} onClick={e=>e.stopPropagation()} alt="photo"/></div>}
+    </div>
+  );
+}
+
+/* ---- StatsView ---- */
+function StatsView({games,myTeam}){
+  if(games.length===0)return<div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">まだ記録がありません</div><div className="empty-desc">試合を記録すると統計が表示されます</div></div>;
+  const totalGames=games.length,totalPhotos=games.reduce((s,g)=>s+(g.photos||[]).length,0);
+  const totalFood=games.reduce((s,g)=>s+(g.foods||[]).reduce((ss,f)=>ss+(parseInt(f.price)||0),0),0);
+  const stadiumSet=new Set(games.map(g=>g.stadium).filter(Boolean));
+  const teamCount={};games.forEach(g=>{if(g.homeTeam)teamCount[g.homeTeam]=(teamCount[g.homeTeam]||0)+1;if(g.awayTeam)teamCount[g.awayTeam]=(teamCount[g.awayTeam]||0)+1;});
+  const topTeams=Object.entries(teamCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const stadiumCount={};games.forEach(g=>{if(g.stadium)stadiumCount[g.stadium]=(stadiumCount[g.stadium]||0)+1;});
+  const topStadiums=Object.entries(stadiumCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const rankClass=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'other';
+  let wins=0,losses=0,draws=0;
+  if(myTeam){games.forEach(g=>{const r=getResult(g,myTeam);if(r==='WIN')wins++;else if(r==='LOSE')losses++;else if(r==='DRAW')draws++;});}
+  const decided=wins+losses+draws;
+  const pct=decided>0?Math.round((wins/decided)*1000)/10:null;
+  return(
+    <div>
+      <div className="stats-grid">
+        {[{num:totalGames,label:'観戦試合数'},{num:stadiumSet.size,label:'訪問球場数'},{num:totalPhotos,label:'写真枚数'},{num:`¥${totalFood.toLocaleString()}`,label:'グルメ総額'}].map((s,i)=>(
+          <div key={i} className="stat-card"><div className="stat-big">{s.num}</div><div className="stat-label">{s.label}</div></div>
+        ))}
+      </div>
+      {myTeam&&(
+        <div className="card">
+          <div className="section-title">⭐ {myTeam} 観戦成績</div>
+          <div className="wl-row">
+            <div className="wl-box w"><div className="wl-num">{wins}</div><div className="wl-lbl">WIN</div></div>
+            <div className="wl-box l"><div className="wl-num">{losses}</div><div className="wl-lbl">LOSE</div></div>
+            <div className="wl-box d"><div className="wl-num">{draws}</div><div className="wl-lbl">DRAW</div></div>
+          </div>
+          {pct!==null&&<p style={{textAlign:'center',fontSize:'13px',color:'var(--text-muted)'}}>勝率 {pct}%（スコア入力済み {decided}試合）</p>}
+          {decided===0&&<p style={{textAlign:'center',fontSize:'13px',color:'var(--text-muted)'}}>スコアを記録すると勝敗が集計されます</p>}
+        </div>
+      )}
+      {topTeams.length>0&&<div className="card"><div className="section-title">よく見たチーム TOP5</div>{topTeams.map(([team,count],i)=>(
+        <div key={team} className="rank-row"><div className={`rank-badge ${rankClass(i)}`}>{i+1}</div><div className="rank-name">{team}{team===myTeam?' ⭐':''}</div><div className="rank-bar-wrap"><div className="rank-bar-bg"><div className="rank-bar-fill" style={{width:`${(count/topTeams[0][1])*100}%`}}/></div><div className="rank-count">{count}試合</div></div></div>
+      ))}</div>}
+      {topStadiums.length>0&&<div className="card"><div className="section-title">よく行った球場 TOP5</div>{topStadiums.map(([stadium,count],i)=>(
+        <div key={stadium} className="rank-row"><div className={`rank-badge ${rankClass(i)}`}>{i+1}</div><div className="rank-name">{stadium}</div><div className="rank-bar-wrap"><div className="rank-bar-bg"><div className="rank-bar-fill" style={{width:`${(count/topStadiums[0][1])*100}%`}}/></div><div className="rank-count">{count}回</div></div></div>
+      ))}</div>}
+    </div>
+  );
+}
+
+/* ---- WeatherView ---- */
+function WeatherView(){
+  const[data,setData]=useState({});
+  const[loading,setLoading]=useState(true);
+  useEffect(()=>{
+    Promise.all(Object.entries(STADIUM_COORDS).map(([name,c])=>
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lng}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FTokyo&forecast_days=5`)
+        .then(r=>r.json()).then(d=>({name,d})).catch(()=>({name,d:null}))
+    )).then(results=>{const map={};results.forEach(({name,d})=>{map[name]=d;});setData(map);setLoading(false);});
+  },[]);
+  const dayLabels=['今日','明日','明後日','3日後','4日後'];
+  if(loading)return<div style={{textAlign:'center',padding:'60px 20px'}}><div style={{fontSize:'34px',marginBottom:'12px'}}>🌤️</div><div style={{fontSize:'14px',color:'var(--text-muted)'}}>全球場の天気予報を取得中...</div></div>;
+  return(
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:'14px',alignItems:'center'}}>
+        <p style={{fontSize:'12px',color:'var(--text-muted)'}}>Open-Meteo による5日間予報</p>
+        <p style={{fontSize:'11px',color:'var(--text-muted)'}}>{new Date().toLocaleDateString('ja-JP',{month:'long',day:'numeric'})} 時点</p>
+      </div>
+      <div className="weather-grid">
+        {Object.entries(STADIUM_COORDS).map(([name,coords])=>{
+          const d=data[name];
+          if(!d?.daily)return<div key={name} className="weather-card"><div className="weather-stadium">📍 {name}</div><p style={{fontSize:'12px',color:'var(--text-muted)',padding:'10px 0'}}>取得中...</p></div>;
+          const{weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum}=d.daily;
+          return(
+            <div key={name} className="weather-card">
+              <div className="weather-stadium">📍 {name} <span style={{fontWeight:400,color:'var(--text-muted)',fontSize:'10px'}}>({coords.city})</span></div>
+              <div className="weather-days">
+                {weathercode.map((code,i)=>(
+                  <div key={i} className="weather-day">
+                    <div className="weather-day-label">{dayLabels[i]}</div>
+                    <div className="weather-day-icon">{wmoIcon(code)}</div>
+                    <div className="weather-day-hi">{Math.round(temperature_2m_max[i])}°</div>
+                    <div className="weather-day-lo">{Math.round(temperature_2m_min[i])}°</div>
+                    {precipitation_sum[i]>0&&<div className="weather-day-rain">💧{precipitation_sum[i].toFixed(1)}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---- SportsNaviView ---- */
+function SportsNaviView(){
+  const snLinks=[
+    {href:'https://baseball.yahoo.co.jp/npb/',icon:'📰',label:'プロ野球トップ',desc:'日程・結果・順位表'},
+    {href:'https://baseball.yahoo.co.jp/npb/standings/',icon:'🏆',label:'順位表',desc:'セ・パ両リーグ順位'},
+    {href:'https://baseball.yahoo.co.jp/npb/schedule/',icon:'📅',label:'試合日程',desc:'今週の試合スケジュール'},
+  ];
+  return(
+    <div>
+      <div className="swallows-hero" style={{background:'linear-gradient(135deg,#6B0F1A 0%,#3D0000 50%,#1a0000 100%)',marginBottom:'14px'}}>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:'22px',letterSpacing:'4px',color:'var(--gold)',marginBottom:'3px'}}>Yahoo! Sports - SportsNavi</div>
+        <div style={{fontSize:'12px',color:'rgba(255,255,255,0.45)',letterSpacing:'1px'}}>プロ野球 公式サイトへのリンク集</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'10px'}}>
+        {snLinks.map(l=>(
+          <a key={l.href} className="link-card" href={l.href} target="_blank" rel="noreferrer">
+            <div className="link-card-icon" style={{background:'#6B0F1A'}}>
+              <span style={{fontSize:'22px'}}>{l.icon}</span>
+            </div>
+            <div className="link-card-name">{l.label}</div>
+            <div className="link-card-desc">{l.desc}</div>
+          </a>
+        ))}
+      </div>
+      <div style={{marginTop:'14px',padding:'14px 16px',background:'var(--card-bg)',borderRadius:'12px',border:'1px solid var(--card-border)',textAlign:'center'}}>
+        <p style={{fontSize:'12px',color:'var(--text-muted)',marginBottom:'12px',lineHeight:1.7}}>
+          SportsNavi はiframe埋め込みを禁止しているため、アプリ内表示はできません。<br/>上のリンクから各ページを別タブで開いてください。
+        </p>
+        <a href="https://baseball.yahoo.co.jp/npb/" target="_blank" rel="noreferrer"
+          style={{display:'inline-flex',alignItems:'center',gap:'6px',padding:'10px 22px',background:'var(--navy)',color:'white',borderRadius:'8px',fontSize:'13px',fontWeight:700,textDecoration:'none'}}>
+          SportsNavi プロ野球を開く ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ---- SwallowsView ---- */
+function SwallowsView(){
+  const links=[
+    {
+      href:'https://ticket.yakult-swallows.co.jp/',
+      icon:'🎫',
+      bg:'#003361',
+      name:'スワチケ',
+      desc:'チケット購入・管理',
+    },
+    {
+      href:'https://www.yakult-swallows.co.jp/fanclub',
+      icon:'🐦',
+      bg:'#00487C',
+      name:'スワローズクルー',
+      desc:'ファンクラブ公式',
+    },
+    {
+      href:'https://auth.yakult-swallows.co.jp/users/sign_in',
+      icon:'💳',
+      bg:'#1B6CA8',
+      name:'クルー会員証',
+      desc:'マイページ・会員証表示',
+    },
+  ];
+
+  const newsLinks=[
+    {href:'https://www.yakult-swallows.co.jp/news/',icon:'📋',label:'最新ニュース一覧',desc:'公式お知らせ・球団ニュース'},
+    {href:'https://www.yakult-swallows.co.jp/game/',icon:'⚾',label:'試合情報',desc:'スコア・日程・オーダー'},
+    {href:'https://www.yakult-swallows.co.jp/players/',icon:'👤',label:'選手一覧',desc:'1軍・ファーム選手情報'},
+    {href:'https://shop.yakult-swallows.co.jp/',icon:'🛍️',label:'グッズショップ',desc:'オンラインショップ'},
+  ];
+
+  return(
+    <div>
+      <div className="swallows-hero">
+        <div className="swallows-hero-title">TOKYO YAKULT SWALLOWS</div>
+        <div className="swallows-hero-sub">東京ヤクルトスワローズ 公式リンク集</div>
+      </div>
+
+      <div className="section-title" style={{marginBottom:'12px'}}>ファンクラブ・チケット</div>
+      <div className="link-cards">
+        {links.map(l=>(
+          <a key={l.href} className="link-card" href={l.href} target="_blank" rel="noreferrer">
+            <div className="link-card-icon" style={{background:l.bg}}>
+              <span style={{fontSize:'22px'}}>{l.icon}</span>
+            </div>
+            <div className="link-card-name">{l.name}</div>
+            <div className="link-card-desc">{l.desc}</div>
+          </a>
+        ))}
+      </div>
+
+      <div className="section-title" style={{marginBottom:'12px',marginTop:'6px'}}>最新ニュース・公式情報</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'10px',marginBottom:'14px'}}>
+        {newsLinks.map(l=>(
+          <a key={l.href} className="link-card" href={l.href} target="_blank" rel="noreferrer" style={{flexDirection:'row',textAlign:'left',gap:'12px',alignItems:'center',padding:'14px'}}>
+            <div style={{width:'40px',height:'40px',borderRadius:'10px',background:'#003361',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'20px',flexShrink:0}}>{l.icon}</div>
+            <div>
+              <div className="link-card-name" style={{fontSize:'13px',marginBottom:'2px'}}>{l.label}</div>
+              <div className="link-card-desc">{l.desc}</div>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <div style={{padding:'14px 16px',background:'var(--card-bg)',borderRadius:'12px',border:'1px solid var(--card-border)',textAlign:'center'}}>
+        <p style={{fontSize:'12px',color:'var(--text-muted)',marginBottom:'12px',lineHeight:1.7}}>
+          公式サイトはiframe埋め込みを禁止しているため、アプリ内表示はできません。<br/>各リンクから別タブで開いてください。
+        </p>
+        <a href="https://www.yakult-swallows.co.jp/" target="_blank" rel="noreferrer"
+          style={{display:'inline-flex',alignItems:'center',gap:'6px',padding:'10px 22px',background:'#003361',color:'white',borderRadius:'8px',fontSize:'13px',fontWeight:700,textDecoration:'none'}}>
+          公式サイトトップを開く ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ---- SettingsModal ---- */
+function SettingsModal({favTeam,bgPref,onSaveFav,onSaveBg,onClose}){
+  const[selTeam,setSelTeam]=useState(favTeam);
+  const[selBg,setSelBg]=useState(bgPref.id||'default');
+  const[opacity,setOpacity]=useState(bgPref.opacity!=null?bgPref.opacity:(BG_PRESETS.find(p=>p.id===bgPref.id)||{overlay:0}).overlay);
+  const[customImg,setCustomImg]=useState(bgPref.img||null);
+  const imgRef=useRef();
+  const handleImgUpload=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const r=new FileReader();
+    r.onload=ev=>{setCustomImg(ev.target.result);setSelBg('custom');};
+    r.readAsDataURL(file);
+    e.target.value='';
+  };
+  const handleSave=()=>{
+    onSaveFav(selTeam);
+    const newPref={id:selBg,opacity,img:selBg==='custom'?customImg:null};
+    onSaveBg(newPref);
+    onClose();
+  };
+  const preset=BG_PRESETS.find(p=>p.id===selBg)||BG_PRESETS[0];
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"/>
+        <div className="modal-title">設定</div>
+        <p style={{fontSize:'13px',color:'var(--text-muted)',marginBottom:'4px'}}>お気に入りチームを選ぶと勝敗が記録・集計されます。</p>
+        <div className="fav-team-grid">
+          {TEAMS.map(t=><button key={t} className={`fav-team-btn${selTeam===t?' selected':''}`} onClick={()=>setSelTeam(t)}>{selTeam===t?'⭐ ':''}{t}</button>)}
+        </div>
+        {selTeam&&<button className="btn-secondary" style={{width:'100%',marginBottom:'10px',fontSize:'13px',padding:'9px 0'}} onClick={()=>setSelTeam('')}>チーム設定を解除する</button>}
+
+        <div className="bg-section">
+          <div style={{fontSize:'11px',fontWeight:700,color:'var(--navy)',letterSpacing:'2px',textTransform:'uppercase',paddingBottom:'10px',borderBottom:'2px solid var(--gold)',marginBottom:'13px'}}>背景テーマ</div>
+          <div className="bg-presets">
+            {BG_PRESETS.map(p=>(
+              <div key={p.id} onClick={()=>{setSelBg(p.id);const def=BG_PRESETS.find(x=>x.id===p.id);if(def)setOpacity(def.overlay||0);}}>
+                <div className={`bg-preset${selBg===p.id?' selected':''}`}>
+                  <div className="bg-swatch" style={p.style}>{p.icon}</div>
+                </div>
+                <div className="bg-preset-label">{p.label}</div>
+              </div>
+            ))}
+          </div>
+          {selBg==='custom'&&(
+            <>
+              <input type="file" accept="image/*" ref={imgRef} style={{display:'none'}} onChange={handleImgUpload}/>
+              <div className="bg-upload-zone" onClick={()=>imgRef.current.click()}>
+                <div style={{fontSize:'26px',marginBottom:'5px'}}>🖼️</div>
+                <div style={{fontWeight:700,fontSize:'13px'}}>画像ファイルを選択</div>
+                <div style={{fontSize:'11px',color:'var(--text-muted)',marginTop:'2px'}}>JPG / PNG / WEBP</div>
+              </div>
+              {customImg&&<img src={customImg} className="bg-current-preview" alt="preview"/>}
+            </>
+          )}
+          {selBg!=='default'&&(
+            <div className="overlay-row">
+              <span className="overlay-label">背景の明るさ <span style={{fontWeight:700,color:'var(--navy)'}}>{Math.round(opacity*100)}%</span></span>
+              <input type="range" min="0" max="100" step="1" value={Math.round(opacity*100)} onChange={e=>setOpacity(parseInt(e.target.value)/100)} style={{flex:1}}/>
+            </div>
+          )}
+        </div>
+
+        <div className="btn-row" style={{marginTop:'20px'}}>
+          <button className="btn-secondary" onClick={onClose}>キャンセル</button>
+          <button className="btn-primary" onClick={handleSave}>保存する</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- App ---- */
+function App(){
+  const[games,setGames]=useState(loadGames);
+  const[view,setView]=useState('list');
+  const[tab,setTab]=useState('list');
+  const[selected,setSelected]=useState(null);
+  const[editGame,setEditGame]=useState(null);
+  const[myTeam,setMyTeam]=useState(loadFavTeam);
+  const[bgPref,setBgPref]=useState(loadBgPref);
+  const[showSettings,setShowSettings]=useState(false);
+  const[query,setQuery]=useState('');
+
+  useEffect(()=>{saveGames(games);},[games]);
+  useEffect(()=>{applyBg(bgPref);},[bgPref]);
+
+  const handleSave=game=>{
+    setGames(gs=>{const idx=gs.findIndex(g=>g.id===game.id);if(idx>=0){const u=[...gs];u[idx]=game;return u;}return[game,...gs];});
+    setSelected(game);setView('detail');setEditGame(null);
+  };
+  const handleDelete=id=>{
+    if(!confirm('この観戦記録を削除しますか？'))return;
+    setGames(gs=>gs.filter(g=>g.id!==id));setSelected(null);setView('list');setTab('list');
+  };
+  const handleEdit=game=>{setEditGame(game);setView('add');};
+  const handleCardClick=game=>{setSelected(game);setView('detail');};
+  const switchTab=t=>{setTab(t);setView(t);setSelected(null);setEditGame(null);setQuery('');};
+  const saveFav=t=>{setMyTeam(t);saveFavTeam(t);};
+  const saveBg=p=>{setBgPref(p);saveBgPref(p);};
+
+  const sorted=useMemo(()=>[...games].sort((a,b)=>new Date(b.date)-new Date(a.date)),[games]);
+  const filtered=useMemo(()=>sorted.filter(g=>gameMatchesQuery(g,query)),[sorted,query]);
+
+  return(
+    <>
+      {/* HEADER */}
+      <header className="header">
+        <div className="header-inner">
+          <div className="logo">
+            <div className="logo-ball">⚾</div>
+            <div><div className="logo-text">BALLPARK LOG</div><div className="logo-sub">野球観戦記録</div></div>
+          </div>
+          <nav className="header-nav">
+            <button className={`nav-tab${tab==='list'?' active':''}`} onClick={()=>switchTab('list')}>観戦記録</button>
+            <button className={`nav-tab${tab==='stats'?' active':''}`} onClick={()=>switchTab('stats')}>統計</button>
+            <button className={`nav-tab${tab==='weather'?' active':''}`} onClick={()=>switchTab('weather')}>⛅ 天気</button>
+            <button className={`nav-tab${tab==='sportsnavi'?' active':''}`} onClick={()=>switchTab('sportsnavi')}>📰 SportsNavi</button>
+            <button className={`nav-tab${tab==='swallows'?' active':''}`} onClick={()=>switchTab('swallows')} style={{color:tab==='swallows'?'var(--navy)':'rgba(255,255,255,0.55)'}}>🐦 スワローズ</button>
+          </nav>
+          <button className="icon-btn" onClick={()=>setShowSettings(true)} title="設定">{myTeam?'⭐':'⚙️'}</button>
+        </div>
+      </header>
+
+      {/* MAIN */}
+      <main className="main">
+        {view==='list'&&(
+          <>
+            {/* Search bar */}
+            <div className="search-wrap">
+              <span className="search-icon">🔍</span>
+              <input className="search-input" type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="チーム・球場・メモを検索..."/>
+              {query&&<button className="search-clear" onClick={()=>setQuery('')}>×</button>}
+            </div>
+            {query&&<div className="search-meta"><strong>{filtered.length}</strong> 件ヒット（全{sorted.length}件）</div>}
+            {filtered.length===0&&query?(
+              <div className="empty-state"><div className="empty-icon">🔍</div><div className="empty-title">「{query}」に一致する記録はありません</div><div className="empty-desc">別のキーワードで試してみてください</div></div>
+            ):filtered.length===0?(
+              <div className="empty-state"><div className="empty-icon">⚾</div><div className="empty-title">観戦記録をはじめましょう</div><div className="empty-desc">右下の ＋ ボタンから最初の試合を記録できます</div></div>
+            ):(
+              filtered.map(g=><GameCard key={g.id} game={g} myTeam={myTeam} onClick={handleCardClick} query={query}/>)
+            )}
+            <button className="fab" onClick={()=>{setEditGame(null);setView('add');}}>＋</button>
+          </>
+        )}
+        {view==='add'&&<AddForm initial={editGame} onSave={handleSave} onCancel={()=>{selected?setView('detail'):setView('list');}}/>}
+        {view==='detail'&&selected&&(
+          <GameDetail game={games.find(g=>g.id===selected.id)||selected} myTeam={myTeam} onBack={()=>{setSelected(null);setView('list');setTab('list');}} onEdit={handleEdit} onDelete={handleDelete}/>
+        )}
+        {view==='stats'&&<StatsView games={games} myTeam={myTeam}/>}
+        {view==='weather'&&<WeatherView/>}
+        {view==='sportsnavi'&&<SportsNaviView/>}
+        {view==='swallows'&&<SwallowsView/>}
+      </main>
+
+      {/* BOTTOM NAV (mobile) */}
+      <nav className="bottom-nav">
+        <div className="bottom-nav-inner">
+          <button className={`bnav-tab${tab==='list'?' active':''}`} onClick={()=>switchTab('list')}>
+            <span className="bnav-icon">📋</span>記録
+          </button>
+          <button className={`bnav-tab${tab==='stats'?' active':''}`} onClick={()=>switchTab('stats')}>
+            <span className="bnav-icon">📊</span>統計
+          </button>
+          <button className="bnav-tab bnav-add" onClick={()=>{setEditGame(null);setView('add');setTab('add');}}>
+            <span className="bnav-icon-circle">＋</span>
+          </button>
+          <button className={`bnav-tab${tab==='weather'?' active':''}`} onClick={()=>switchTab('weather')}>
+            <span className="bnav-icon">⛅</span>天気
+          </button>
+          <button className={`bnav-tab${tab==='sportsnavi'?' active':''}`} onClick={()=>switchTab('sportsnavi')}>
+            <span className="bnav-icon">📰</span>S-Navi
+          </button>
+          <button className={`bnav-tab${tab==='swallows'?' active':''}`} onClick={()=>switchTab('swallows')}>
+            <span className="bnav-icon">🐦</span>燕
+          </button>
+          <button className="bnav-tab" onClick={()=>setShowSettings(true)}>
+            <span className="bnav-icon">{myTeam?'⭐':'⚙️'}</span>設定
+          </button>
+        </div>
+      </nav>
+
+      {showSettings&&<SettingsModal favTeam={myTeam} bgPref={bgPref} onSaveFav={saveFav} onSaveBg={saveBg} onClose={()=>setShowSettings(false)}/>}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
