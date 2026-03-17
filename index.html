@@ -297,7 +297,7 @@ input[type=range]{padding:0;height:4px;border-radius:2px;background:var(--ivory-
 const{useState,useEffect,useRef,useCallback,useMemo}=React;
 
 const TEAMS=['読売ジャイアンツ','横浜DeNAベイスターズ','阪神タイガース','広島東洋カープ','中日ドラゴンズ','東京ヤクルトスワローズ','福岡ソフトバンクホークス','東北楽天ゴールデンイーグルス','千葉ロッテマリーンズ','埼玉西武ライオンズ','北海道日本ハムファイターズ','オリックス・バファローズ'];
-const STADIUMS=['東京ドーム','バンテリンドームナゴヤ','甲子園球場','マツダスタジアム','横浜スタジアム','明治神宮野球場','みずほPayPayドーム福岡','楽天モバイルパーク宮城','ZOZOマリンスタジアム','ベルーナドーム','エスコンフィールドHOKKAIDO','京セラドーム大阪'];
+const STADIUMS=['明治神宮野球場','東京ドーム','横浜スタジアム','ベルーナドーム','ZOZOマリンスタジアム','バンテリンドームナゴヤ','甲子園球場','京セラドーム大阪','マツダスタジアム','みずほPayPayドーム福岡','楽天モバイルパーク宮城','エスコンフィールドHOKKAIDO'];
 const WEATHER=['☀️ 晴れ','⛅ 曇り','🌧️ 雨中断あり','🌧️ 雨','❄️ 雪','🌙 ナイター（晴れ）','🌙 ナイター（曇り）'];
 const FOOD_ICONS=['🍱','🌭','🍗','🍜','🍣','🍺','🥤','🍦','🍿','🍔','🥜','🍙','🍤','🧆','🥪'];
 const STADIUM_COORDS={
@@ -564,7 +564,111 @@ async function processFilesSequential(files){
   return results;
 }
 
-/* ---- AddForm ---- */
+/* ---- 神宮球場グルメリスト（2026シーズン） ---- */
+const JINGU_MENU=[
+  {cat:'⚾ 選手グルメ',items:[
+    // つばめ食堂 (shop-505)
+    {name:'ガーリックマヨ玉焼肉丼（岩田幸宏）',price:1600},
+    {name:'徳島ラーメン（武岡龍世）',price:1450},
+    {name:'八王子ラーメン（荘司宏太）',price:1450},
+    {name:'オクラ旨だしとりそぼろ丼（山田哲人）',price:1200},
+    {name:'大好き！生姜いっかん丼（宮本慎也）',price:1600},
+    // 肉のくるりんぱ (shop-501)
+    {name:'国産牛しぐれ焼肉のわんぱく3色丼（内山壮真）',price:1400},
+    // 丼とぼんた (shop-514)
+    {name:'大学時代の想い出の味"ニラ牛肉丼"（木澤尚文）',price:1450},
+    {name:'海鮮"韋駄天"丼（並木秀尊）',price:''},
+    // うどんとぼんた (shop-512)
+    {name:'スペシャル玉ねぎ天うどん（武岡龍世）',price:1200},
+    // ポテトマニア (shop-507)
+    {name:'のり！塩！ポテト（塩見泰隆）',price:800},
+    {name:'和風カレーポテト（中村優斗）',price:''},
+    // 築地銀だこ (shop-496)
+    {name:'贅沢チーズ明太子たこ焼（長岡秀樹）',price:''},
+    // みかさ威風 (shop-549)
+    {name:'大好き麻婆やきそば（奥川恭伸）',price:''},
+    {name:'レモネードスカッシュ（木澤尚文）',price:600},
+    // きっちんくるりんぱ (shop-503)
+    {name:'えみふる和牛バーガー（つば九郎）',price:1200},
+    {name:'くずもっちりアイス（つば九郎）',price:400},
+  ]},
+  {cat:'🍱 弁当・丼もの',items:[
+    {name:'じんカラのり弁',price:''},
+    {name:'利久の牛たん丼弁当（たれ味）',price:1200},
+    {name:'叙々苑 牛切落し弁当',price:2200},
+    {name:'つば九郎米弁当',price:''},
+    {name:'巨人戦 深川めし弁当',price:1000},
+    {name:'阪神戦 焼肉・ホルモン弁当',price:1000},
+    {name:'横浜戦 神宮中華弁当',price:1000},
+    {name:'広島戦 あなごめし弁当',price:1000},
+    {name:'中日戦 味噌カツ重',price:1000},
+    {name:'国産牛しぐれ焼肉のわんぱく3色丼',price:1400},
+    {name:'ガーリックマヨ玉焼肉丼',price:1600},
+    {name:'オクラ旨だしとりそぼろ丼',price:1200},
+    {name:'大学時代の想い出の味"ニラ牛肉丼"',price:1450},
+    {name:'大好き！生姜いっかん丼',price:1600},
+    {name:'唐揚げ丼',price:''},
+    {name:'スタジアムカレー',price:''},
+  ]},
+  {cat:'🍜 麺類',items:[
+    {name:'徳島ラーメン',price:1450},
+    {name:'八王子ラーメン（温・冷）',price:1450},
+    {name:'スペシャル玉ねぎ天うどん（温・冷）',price:1200},
+    {name:'大好き麻婆やきそば',price:''},
+    {name:'神宮やきそば',price:''},
+    {name:'神保町やきそば（みかさ威風）',price:''},
+    {name:'家系ラーメン（壱角家）',price:900},
+    {name:'MAXラーメン全部乗せ（壱角家）',price:1250},
+    {name:'バター醤油焼きそば（壱角家）',price:700},
+    {name:'もちもち水餃子',price:550},
+  ]},
+  {cat:'🍗 ファストフード',items:[
+    {name:'じんカラ（神宮球場からあげ）',price:''},
+    {name:'じんカツ（カツサンド）',price:''},
+    {name:'じんカラ＆じんカツセット',price:''},
+    {name:'えみふる和牛バーガー',price:1200},
+    {name:'ピザーラ チーズラバー（1ピース）',price:450},
+    {name:'ピザーラ テリヤキチキン（1ピース）',price:450},
+    {name:'石山泰稚の石やマルゲリータ',price:950},
+    {name:'チュリトス',price:500},
+    {name:'チキンナゲット',price:450},
+    {name:'たこ焼き（築地銀だこ）',price:''},
+    {name:'贅沢チーズ明太子たこ焼',price:''},
+    {name:'みやざき餃子（5個）',price:700},
+    {name:'手羽餃子',price:''},
+    {name:'みやざきご当地おつまみセット',price:1500},
+    {name:'おにぎり（ぼんたぼんた）',price:''},
+    {name:'唐揚げ（丼とぼんた）',price:''},
+  ]},
+  {cat:'🦪 おつまみ',items:[
+    {name:'のり！塩！ポテト',price:800},
+    {name:'和風カレーポテト',price:''},
+    {name:'もりもりポテト',price:750},
+    {name:'大学芋風スイーツポテト',price:800},
+    {name:'牡蠣の浜焼き（だんまや水産）',price:''},
+    {name:'いかポッポ焼き（だんまや水産）',price:''},
+    {name:'焼肉盛り合わせ',price:''},
+    {name:'ホルモン炒め',price:''},
+    {name:'ごぼち（ゴボウチップス）',price:''},
+    {name:'枝豆',price:''},
+  ]},
+  {cat:'🍨 スイーツ・ドリンク',items:[
+    {name:'くずもっちりアイス',price:400},
+    {name:'サーティワンアイスクリーム',price:''},
+    {name:'チュリトス（Pink dot.）',price:500},
+    {name:'タピオカミルクティー',price:450},
+    {name:'黒糖タピオカミルクコーヒー',price:450},
+    {name:'つば九郎カップ 玉子焼き串（築地場外）',price:700},
+    {name:'武岡龍世のすっきり爽やかパインコーラ',price:600},
+    {name:'木澤尚文のレモネードスカッシュ',price:600},
+    {name:'じんレモ（神宮球場レモンサワー）',price:''},
+    {name:'おやじんレモ',price:''},
+    {name:'生ビール',price:''},
+    {name:'ハイボール',price:''},
+    {name:'つば九郎ベビーカステラ',price:''},
+    {name:'つば九郎焼き',price:''},
+  ]},
+];
 function AddForm({initial,onSave,onCancel}){
   const blank={date:new Date().toISOString().slice(0,10),homeTeam:'',awayTeam:'',stadium:'',homeScore:'',awayScore:'',weather:'',seat:'',memo:''};
   const[form,setForm]=useState(initial?{...initial}:blank);
@@ -582,6 +686,8 @@ function AddForm({initial,onSave,onCancel}){
   const[detailLoading,setDetailLoading]=useState(false);
   const[detailError,setDetailError]=useState('');
   const[photoLoading,setPhotoLoading]=useState(false);
+  const[menuCat,setMenuCat]=useState(JINGU_MENU[0].cat);
+  const[menuOpen,setMenuOpen]=useState(false);
   const fileRef=useRef();
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
 
@@ -872,6 +978,46 @@ function AddForm({initial,onSave,onCancel}){
       </>}
       {ftab==='food'&&<>
         <div className="section-title">球場グルメ記録</div>
+
+        {/* 神宮球場限定メニューピッカー */}
+        {form.stadium&&form.stadium.includes('神宮')&&(()=>{
+          const curCat=JINGU_MENU.find(c=>c.cat===menuCat)||JINGU_MENU[0];
+          return(
+            <div style={{marginBottom:'14px',border:'1px solid var(--gold)',borderRadius:'10px',overflow:'hidden'}}>
+              <button onClick={()=>setMenuOpen(o=>!o)}
+                style={{width:'100%',background:'linear-gradient(135deg,#1B2A4A,#253A60)',border:'none',padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{color:'var(--gold)',fontWeight:700,fontSize:'13px'}}>⛩️ 神宮球場グルメメニューから選ぶ</span>
+                <span style={{color:'var(--gold)',fontSize:'16px'}}>{menuOpen?'▲':'▼'}</span>
+              </button>
+              {menuOpen&&(
+                <div style={{background:'var(--ivory)',padding:'10px 12px'}}>
+                  {/* カテゴリータブ */}
+                  <div style={{display:'flex',gap:'6px',flexWrap:'wrap',marginBottom:'10px'}}>
+                    {JINGU_MENU.map(c=>(
+                      <button key={c.cat} onClick={()=>setMenuCat(c.cat)}
+                        style={{background:menuCat===c.cat?'var(--navy)':'var(--ivory-dark)',color:menuCat===c.cat?'white':'var(--text)',border:'1px solid var(--border)',borderRadius:'20px',padding:'4px 10px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit'}}>
+                        {c.cat}
+                      </button>
+                    ))}
+                  </div>
+                  {/* メニュー一覧 */}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',maxHeight:'220px',overflowY:'auto'}}>
+                    {curCat.items.map(item=>(
+                      <button key={item.name} onClick={()=>{setFoodName(item.name);if(item.price)setFoodPrice(String(item.price));setMenuOpen(false);}}
+                        style={{background:'white',border:'1px solid var(--border)',borderRadius:'8px',padding:'8px 10px',cursor:'pointer',textAlign:'left',fontFamily:'inherit',transition:'background 0.1s'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='#f0f4ff'}
+                        onMouseLeave={e=>e.currentTarget.style.background='white'}>
+                        <div style={{fontSize:'12px',fontWeight:600,color:'var(--navy)',lineHeight:1.4}}>{item.name}</div>
+                        {item.price&&<div style={{fontSize:'11px',color:'var(--text-muted)',marginTop:'2px'}}>¥{item.price.toLocaleString()}</div>}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{fontSize:'10px',color:'var(--text-muted)',marginTop:'8px'}}>※選択後、値段を確認・修正して「追加」を押してください</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {foods.length===0&&<p style={{color:'var(--text-muted)',fontSize:'14px',textAlign:'center',padding:'16px 0'}}>まだグルメが登録されていません</p>}
         {foods.map(f=>(
           <div key={f.id} className="food-item">
@@ -1006,8 +1152,11 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
         const homeLineup=buildLineup(homeId);
         const awayLineup=buildLineup(awayId);
 
+        const hrLabel=runs=>{const r=Number(runs);if(r===1)return'ソロ';if(r===2)return'ツーラン';if(r===3)return'スリーラン';if(r>=4)return'満塁HR';return`${r}打点`;};
+
         const PRow=({p})=>{
           const fl=pitcherFlagLabel(p.winLoseSaveHoldFlag);
+          const bbTotal=Number(p.bb||0)+Number(p.hbp||0);
           return(
             <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'3px',fontSize:'12px'}}>
               {fl
@@ -1015,7 +1164,7 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
                 :<span style={{display:'inline-block',width:'22px'}}/>
               }
               <span style={{fontWeight:500,flex:1}}>{(p.playerName||'').split(/[　 ]/)[0]}</span>
-              <span style={{color:'var(--text-muted)',fontSize:'10px'}}>{formatIP(p.ip,p.ip3)}回 {p.h}安 {p.so}K {p.r}失</span>
+              <span style={{color:'var(--text-muted)',fontSize:'10px'}}>{formatIP(p.ip,p.ip3)}回 {p.h}安 {p.so}K{bbTotal>0?` ${bbTotal}四死`:''} {p.r}失</span>
             </div>
           );
         };
@@ -1097,20 +1246,7 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
                       <span style={{fontSize:'11px',color:'var(--text-muted)'}}>{lv.End_SavePitcher_Save}S</span>
                     </div>
                   )}
-                  {lv.End_GWRBIPlayer_PlayerNameS&&(
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
-                      <span style={{background:'#fff8e1',color:'#856000',borderRadius:'4px',padding:'1px 7px',fontSize:'11px',fontWeight:700}}>GW</span>
-                      <span style={{fontSize:'13px',fontWeight:700}}>{lv.End_GWRBIPlayer_PlayerNameL||lv.End_GWRBIPlayer_PlayerNameS}</span>
-                    </div>
-                  )}
                 </div>
-                {(lv.H_Relief_Pitcher_NameS||lv.V_Relief_Pitcher_NameS)&&(
-                  <div style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid var(--ivory-dark)',fontSize:'11px',color:'var(--text-muted)'}}>
-                    最終投手：
-                    {lv.H_Relief_Pitcher_NameS&&<span style={{marginRight:'10px'}}>{lv.H_Score_NameS} {lv.H_Relief_Pitcher_NameS}（{lv.H_Relief_Pitcher_Num}）</span>}
-                    {lv.V_Relief_Pitcher_NameS&&<span>{lv.V_Score_NameS} {lv.V_Relief_Pitcher_NameS}（{lv.V_Relief_Pitcher_Num}）</span>}
-                  </div>
-                )}
               </div>
             )}
 
@@ -1129,7 +1265,7 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
                     <div className="section-title">💣 本塁打</div>
                     {hrs.map((h,i)=>{
                       const tname=String(h.teamId)===homeId?game.homeTeam:game.awayTeam;
-                      return(<div key={i} style={{marginBottom:'6px',fontSize:'12px'}}><div style={{fontWeight:700}}>{h.name_s} <span style={{color:'var(--crimson)'}}>{h.runs}打点</span></div><div style={{color:'var(--text-muted)',fontSize:'11px'}}>{h.inn}回 {tname}</div></div>);
+                      return(<div key={i} style={{marginBottom:'6px',fontSize:'12px'}}><div style={{fontWeight:700}}>{h.name_s} <span style={{color:'var(--crimson)'}}>{hrLabel(h.runs)}</span></div><div style={{color:'var(--text-muted)',fontSize:'11px'}}>{h.inn}回 {tname}</div></div>);
                     })}
                   </div>
                 )}
@@ -1144,7 +1280,16 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
                   {[{label:game.homeTeam,lineup:homeLineup},{label:game.awayTeam,lineup:awayLineup}].map(({label,lineup})=>(
                     <div key={label}>
                       <div style={{fontSize:'11px',color:'var(--text-muted)',fontWeight:700,marginBottom:'7px'}}>{label}</div>
-                      {lineup.map((m,i)=><PlayerRow key={m.playerId+i} m={m}/>)}
+                      {lineup.map((m,i)=>{
+                        // 打順区切り線：スタメン行の前（最初を除く）
+                        const showDivider=!m.isSub&&i>0;
+                        return(
+                          <React.Fragment key={m.playerId+i}>
+                            {showDivider&&<div style={{borderTop:'1px solid var(--ivory-dark)',margin:'4px 0'}}/>}
+                            <PlayerRow m={m}/>
+                          </React.Fragment>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
@@ -1176,7 +1321,20 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
   );
 }
 
-/* ---- StatsView ---- */
+const TEAM_MASCOT={
+  '読売ジャイアンツ':      {emoji:'🦁', name:'ジャビット',   color:'#F97316'},
+  '横浜DeNAベイスターズ':  {emoji:'⭐', name:'DB.スターマン', color:'#3B82F6'},
+  '阪神タイガース':        {emoji:'🐯', name:'トラッキー',   color:'#F59E0B'},
+  '広島東洋カープ':        {emoji:'🐟', name:'スライリー',   color:'#EF4444'},
+  '中日ドラゴンズ':        {emoji:'🐉', name:'ドアラ',       color:'#1D4ED8'},
+  '東京ヤクルトスワローズ':{emoji:'🕊️', name:'つば九郎',    color:'#059669'},
+  '福岡ソフトバンクホークス':{emoji:'🦅',name:'ハリーホーク', color:'#D97706'},
+  '東北楽天ゴールデンイーグルス':{emoji:'🦅',name:'クラッチ',color:'#DC2626'},
+  '千葉ロッテマリーンズ':  {emoji:'🦀', name:'マリーンくん', color:'#0369A1'},
+  '埼玉西武ライオンズ':    {emoji:'🦁', name:'レオ',         color:'#7C3AED'},
+  '北海道日本ハムファイターズ':{emoji:'🐻',name:'B·B',       color:'#0F172A'},
+  'オリックス・バファローズ':{emoji:'🐂',name:'バファローブル',color:'#1E40AF'},
+};
 function StatsView({games,myTeam}){
   if(games.length===0)return<div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">まだ記録がありません</div><div className="empty-desc">試合を記録すると統計が表示されます</div></div>;
   const totalGames=games.length,totalPhotos=games.reduce((s,g)=>s+(g.photos||[]).length,0);
@@ -1198,18 +1356,27 @@ function StatsView({games,myTeam}){
           <div key={i} className="stat-card"><div className="stat-big">{s.num}</div><div className="stat-label">{s.label}</div></div>
         ))}
       </div>
-      {myTeam&&(
-        <div className="card">
-          <div className="section-title">⭐ {myTeam} 観戦成績</div>
-          <div className="wl-row">
-            <div className="wl-box w"><div className="wl-num">{wins}</div><div className="wl-lbl">WIN</div></div>
-            <div className="wl-box l"><div className="wl-num">{losses}</div><div className="wl-lbl">LOSE</div></div>
-            <div className="wl-box d"><div className="wl-num">{draws}</div><div className="wl-lbl">DRAW</div></div>
-          </div>
-          {pct!==null&&<p style={{textAlign:'center',fontSize:'13px',color:'var(--text-muted)'}}>勝率 {pct}%（スコア入力済み {decided}試合）</p>}
-          {decided===0&&<p style={{textAlign:'center',fontSize:'13px',color:'var(--text-muted)'}}>スコアを記録すると勝敗が集計されます</p>}
-        </div>
-      )}
+      {myTeam&&(()=>{
+          const mascot=TEAM_MASCOT[myTeam];
+          return(
+            <div className="card" style={{position:'relative',overflow:'hidden'}}>
+              {mascot&&(
+                <div style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',fontSize:'72px',opacity:0.10,pointerEvents:'none',lineHeight:1}}>
+                  {mascot.emoji}
+                </div>
+              )}
+              <div className="section-title">⭐ {myTeam} 観戦成績</div>
+              <div className="wl-row">
+                <div className="wl-box w"><div className="wl-num">{wins}</div><div className="wl-lbl">WIN</div></div>
+                <div className="wl-box l"><div className="wl-num">{losses}</div><div className="wl-lbl">LOSE</div></div>
+                <div className="wl-box d"><div className="wl-num">{draws}</div><div className="wl-lbl">DRAW</div></div>
+              </div>
+              {pct!==null&&<p style={{textAlign:'center',fontSize:'13px',color:'var(--text-muted)'}}>勝率 {pct}%（スコア入力済み {decided}試合）</p>}
+              {decided===0&&<p style={{textAlign:'center',fontSize:'13px',color:'var(--text-muted)'}}>スコアを記録すると勝敗が集計されます</p>}
+              {mascot&&<p style={{textAlign:'center',fontSize:'11px',color:'var(--text-muted)',marginTop:'4px'}}>{mascot.emoji} {mascot.name}と一緒に応援中！</p>}
+            </div>
+          );
+        })()}
       {topTeams.length>0&&<div className="card"><div className="section-title">よく見たチーム TOP5</div>{topTeams.map(([team,count],i)=>(
         <div key={team} className="rank-row"><div className={`rank-badge ${rankClass(i)}`}>{i+1}</div><div className="rank-name">{team}{team===myTeam?' ⭐':''}</div><div className="rank-bar-wrap"><div className="rank-bar-bg"><div className="rank-bar-fill" style={{width:`${(count/topTeams[0][1])*100}%`}}/></div><div className="rank-count">{count}試合</div></div></div>
       ))}</div>}
