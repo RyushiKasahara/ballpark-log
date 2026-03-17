@@ -216,6 +216,21 @@ input:focus,select:focus,textarea:focus{border-color:var(--navy);background:whit
 .overlay-label{font-size:13px;color:var(--text-muted);flex:1;}
 input[type=range]{padding:0;height:4px;border-radius:2px;background:var(--ivory-dark);border:none;}
 
+/* DATA SECTION */
+.data-section{margin-top:20px;padding-top:18px;border-top:1px solid var(--card-border);}
+.data-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.data-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border-radius:12px;border:1.5px solid var(--card-border);background:var(--ivory);cursor:pointer;font-family:inherit;transition:all 0.15s;text-align:center;}
+.data-btn:hover{border-color:var(--navy);background:#f0f4fa;}
+.data-btn-icon{font-size:24px;line-height:1;}
+.data-btn-label{font-size:13px;font-weight:700;color:var(--navy);}
+.data-btn-desc{font-size:11px;color:var(--text-muted);line-height:1.4;}
+.data-btn.danger{border-color:#f5c4be;}
+.data-btn.danger:hover{border-color:var(--crimson);background:#fdf0ef;}
+.data-btn.danger .data-btn-label{color:var(--crimson);}
+.import-result{margin-top:10px;padding:10px 13px;border-radius:8px;font-size:13px;line-height:1.6;}
+.import-result.success{background:#eaf5eb;color:var(--green);border:1px solid #b5d9b7;}
+.import-result.error{background:#fdf0ef;color:var(--crimson);border:1px solid #f5c4be;}
+
 /* BACK / EMPTY */
 .back-btn{background:none;border:none;color:var(--navy);cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:14px;font-family:inherit;font-size:14px;font-weight:700;padding:4px 0;min-height:36px;}
 .empty-state{text-align:center;padding:52px 20px;}
@@ -438,44 +453,115 @@ function GameCard({game,myTeam,onClick,query}){
   );
 }
 
-/* ---- AI Fetch ---- */
-async function fetchGameInfo(date, stadium) {
-  const dateObj = new Date(date + 'T00:00:00');
-  const y = dateObj.getFullYear(), m = dateObj.getMonth()+1, d = dateObj.getDate();
-  const dateStr = `${y}年${m}月${d}日`;
-  const prompt = `以下の条件でプロ野球の試合結果を調べてください。
-日付: ${dateStr}
-球場: ${stadium}
-
-Webを検索して、その日その球場で行われた試合の情報を取得してください。
-以下のJSON形式のみで返答してください。他のテキストは一切含めないでください。
-{
-  "homeTeam": "ホームチーム名（12球団の正式名称）",
-  "awayTeam": "ビジターチーム名（12球団の正式名称）",
-  "homeScore": "ホームチームの得点（数字のみ）",
-  "awayScore": "ビジターチームの得点（数字のみ）",
-  "summary": "試合の総評・見どころを200字程度で（ホームラン、好投、逆転劇など見どころを含めて）",
-  "found": true
+/* ---- SPAIA fetch ---- */
+const TEAM_NAME_MAP={
+  'giants':'読売ジャイアンツ','baystars':'横浜DeNAベイスターズ','tigers':'阪神タイガース',
+  'carp':'広島東洋カープ','dragons':'中日ドラゴンズ','swallows':'東京ヤクルトスワローズ',
+  'hawks':'福岡ソフトバンクホークス','eagles':'東北楽天ゴールデンイーグルス',
+  'marines':'千葉ロッテマリーンズ','lions':'埼玉西武ライオンズ',
+  'fighters':'北海道日本ハムファイターズ','buffaloes':'オリックス・バファローズ',
+  'ジャイアンツ':'読売ジャイアンツ','ベイスターズ':'横浜DeNAベイスターズ',
+  'タイガース':'阪神タイガース','カープ':'広島東洋カープ','ドラゴンズ':'中日ドラゴンズ',
+  'スワローズ':'東京ヤクルトスワローズ','ホークス':'福岡ソフトバンクホークス',
+  'イーグルス':'東北楽天ゴールデンイーグルス','マリーンズ':'千葉ロッテマリーンズ',
+  'ライオンズ':'埼玉西武ライオンズ','ファイターズ':'北海道日本ハムファイターズ',
+  'バファローズ':'オリックス・バファローズ'
+};
+function normalizeTeam(s){
+  if(!s)return'';
+  for(const[k,v]of Object.entries(TEAM_NAME_MAP)){if(s.includes(k))return v;}
+  return s;
 }
-試合が見つからない場合は {"found": false} のみ返してください。
-チーム名は必ず次のいずれかを使用: 読売ジャイアンツ, 横浜DeNAベイスターズ, 阪神タイガース, 広島東洋カープ, 中日ドラゴンズ, 東京ヤクルトスワローズ, 福岡ソフトバンクホークス, 東北楽天ゴールデンイーグルス, 千葉ロッテマリーンズ, 埼玉西武ライオンズ, 北海道日本ハムファイターズ, オリックス・バファローズ`;
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: prompt }]
-    })
+/* generic proxy fetch */
+async function fetchWithProxy(targetUrl,timeout=7000){
+  const routes=[
+    {label:'直接',  fn:()=>fetch(targetUrl,{mode:'cors'})},
+    {label:'proxy①',fn:()=>fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`)},
+    {label:'proxy②',fn:()=>fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`)},
+    {label:'proxy③',fn:()=>fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`)},
+    {label:'proxy④',fn:()=>fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`)},
+  ];
+  const errors=[];
+  for(const{label,fn}of routes){
+    try{
+      const resp=await Promise.race([fn(),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),timeout))]);
+      if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
+      const text=await resp.text();
+      return{json:JSON.parse(text),via:label};
+    }catch(e){errors.push(`${label}: ${e.message}`);}
+  }
+  throw new Error(errors.join(' / '));
+}
+
+async function fetchSpaiaGames(date){
+  const d=new Date(date+'T00:00:00');
+  const gameDate=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  const {json,via}=await fetchWithProxy(`https://spaia.jp/baseball/npb/api/games_info_by_date?gameDate=${gameDate}`);
+  return{gameDate,data:json,via};
+}
+
+async function fetchSpaiaGameDetail(gameId,matchday,homeTeamId,visitorTeamId,gameKindId){
+  const gid=String(gameId);
+  const teamIds=JSON.stringify([String(homeTeamId),String(visitorTeamId)]);
+  const [overview,members,homers,pitchers,live,batters]=await Promise.allSettled([
+    fetchWithProxy(`https://spaia.jp/baseball/npb/api/game_over_view?gameId=${gid}`),
+    fetchWithProxy(`https://spaia.jp/baseball/npb/api/starting_members_for_flash?gameId=${gid}`),
+    fetchWithProxy(`https://spaia.jp/baseball/npb/api/flash_homerun?gameId=${gid}`),
+    fetchWithProxy(`https://spaia.jp/baseball/npb/api/both_pitcher_game_stats?gameId=${gid}&matchday=${matchday}&teamIds=${encodeURIComponent(teamIds)}&gameKindId=${gameKindId||1}`),
+    fetchWithProxy(`https://spaia.jp/baseball/npb/api/live_games?GameID=${gid}`),
+    fetchWithProxy(`https://spaia.jp/baseball/npb/api/both_batter_stats?gameId=${gid}&matchday=${matchday}&teamIds=${encodeURIComponent(teamIds)}&gameKindId=${gameKindId||1}`),
+  ]);
+  return{
+    overview: overview.status==='fulfilled'?(overview.value.json[0]||null):null,
+    members:  members.status==='fulfilled'?members.value.json:[],
+    homers:   homers.status==='fulfilled'?homers.value.json:[],
+    pitchers: pitchers.status==='fulfilled'?pitchers.value.json:[],
+    live:     live.status==='fulfilled'?(live.value.json[0]||null):null,
+    batters:  batters.status==='fulfilled'?batters.value.json:[],
+  };
+}
+
+/* winLoseSaveHoldFlag: "1"=勝 "2"=負 "3"=S "4"=H */
+function pitcherFlagLabel(flag){
+  if(flag==='1')return{label:'勝',color:'var(--green)',bg:'#eaf5eb'};
+  if(flag==='2')return{label:'負',color:'var(--crimson)',bg:'#fdf0ef'};
+  if(flag==='3')return{label:'S',color:'#1B6CA8',bg:'#e8f0fb'};
+  if(flag==='4')return{label:'H',color:'#856000',bg:'#fff8e1'};
+  return null;
+}
+function formatIP(ip,ip3){return ip3?`${ip}.${ip3}`:`${ip||0}`;}
+
+const POSITION_MAP={'1':'投','2':'捕','3':'内','4':'外'};
+
+/* ---- Image compress util ---- */
+function compressImage(file,maxW=1200,quality=0.75){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const scale=Math.min(1,maxW/Math.max(img.width,img.height));
+        const w=Math.round(img.width*scale),h=Math.round(img.height*scale);
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=()=>resolve(e.target.result);
+      img.src=e.target.result;
+    };
+    reader.onerror=()=>resolve(null);
+    reader.readAsDataURL(file);
   });
-  if (!resp.ok) throw new Error('API error: ' + resp.status);
-  const data = await resp.json();
-  const textBlock = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const jsonMatch = textBlock.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('JSON not found in response');
-  return JSON.parse(jsonMatch[0]);
+}
+async function processFilesSequential(files){
+  const results=[];
+  for(const file of files){
+    const src=await compressImage(file);
+    if(src)results.push({id:genId(),src,name:file.name});
+  }
+  return results;
 }
 
 /* ---- AddForm ---- */
@@ -487,44 +573,63 @@ function AddForm({initial,onSave,onCancel}){
   const[ftab,setFtab]=useState('basic');
   const[foodName,setFoodName]=useState('');
   const[foodPrice,setFoodPrice]=useState('');
-  const[fetchState,setFetchState]=useState('idle'); // idle | loading | done | error
-  const[fetchResult,setFetchResult]=useState(null);
+  const[fetchState,setFetchState]=useState('idle');
+  const[fetchGames,setFetchGames]=useState([]);
   const[fetchError,setFetchError]=useState('');
+  const[fetchVia,setFetchVia]=useState('');
+  const[selectedGame,setSelectedGame]=useState(null); // the chosen game object
+  const[detail,setDetail]=useState(null);   // fetchSpaiaGameDetail result
+  const[detailLoading,setDetailLoading]=useState(false);
+  const[detailError,setDetailError]=useState('');
+  const[photoLoading,setPhotoLoading]=useState(false);
   const fileRef=useRef();
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
 
-  const canFetch = form.date && form.stadium;
+  const canFetch=form.date;
 
-  const handleFetch = async () => {
-    setFetchState('loading');
-    setFetchResult(null);
-    setFetchError('');
-    try {
-      const result = await fetchGameInfo(form.date, form.stadium);
-      if (!result.found) {
-        setFetchState('error');
-        setFetchError('該当する試合が見つかりませんでした。手動で入力してください。');
-        return;
-      }
-      setFetchResult(result);
-      setFetchState('done');
-    } catch(e) {
+  const handleFetch=async()=>{
+    setFetchState('loading');setFetchGames([]);setFetchError('');setFetchVia('');
+    try{
+      const{data,via}=await fetchSpaiaGames(form.date);
+      const list=Array.isArray(data)?data:(data.games||data.data||data.gameList||data.results||[]);
+      if(!list.length){setFetchState('notfound');return;}
+      setFetchGames(list);setFetchState('done');setFetchVia(via);
+    }catch(e){
       setFetchState('error');
-      setFetchError('取得に失敗しました: ' + e.message);
+      setFetchError(e.message||'全ルート失敗');
     }
   };
 
-  const applyFetchResult = () => {
-    if (!fetchResult) return;
-    setForm(f => ({
-      ...f,
-      homeTeam: fetchResult.homeTeam || f.homeTeam,
-      awayTeam: fetchResult.awayTeam || f.awayTeam,
-      homeScore: fetchResult.homeScore != null ? String(fetchResult.homeScore) : f.homeScore,
-      awayScore: fetchResult.awayScore != null ? String(fetchResult.awayScore) : f.awayScore,
-      memo: fetchResult.summary ? (f.memo ? f.memo + '\n\n【試合総評】\n' + fetchResult.summary : '【試合総評】\n' + fetchResult.summary) : f.memo,
-    }));
+  const applyGame=(g)=>{
+    const home=g.homeTeamName||'';
+    const away=g.visitorTeamName||'';
+    const hs=g.homeTeamTotalRuns!=null?String(g.homeTeamTotalRuns):'';
+    const as=g.visitorTeamTotalRuns!=null?String(g.visitorTeamTotalRuns):'';
+    setForm(f=>({...f,homeTeam:home||f.homeTeam,awayTeam:away||f.awayTeam,homeScore:hs||f.homeScore,awayScore:as||f.awayScore}));
     setFetchState('applied');
+    setSelectedGame(g);
+    setDetail(null);
+    setDetailError('');
+    // auto-fetch detail
+    loadDetail(g);
+  };
+
+  const loadDetail=async(g)=>{
+    setDetailLoading(true);setDetailError('');
+    try{
+      const d=new Date(form.date+'T00:00:00');
+      const matchday=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      const result=await fetchSpaiaGameDetail(g.gameId,matchday,g.homeTeamId,g.visitorTeamId,g.gameTypeId||g.gameKindId||1);
+      setDetail(result);
+    }catch(e){setDetailError('詳細取得失敗: '+e.message);}
+    setDetailLoading(false);
+  };
+
+  const applyDetailToForm=()=>{
+    if(!detail)return;
+    const stadium=detail.overview?.stadiumName||'';
+    const stMatch=STADIUMS.find(s=>s.includes(stadium)||stadium.includes(s.slice(0,4)));
+    setForm(f=>({...f,stadium:stMatch||f.stadium}));
   };
 
   const addFood=()=>{
@@ -533,19 +638,25 @@ function AddForm({initial,onSave,onCancel}){
     setFoods(fs=>[...fs,{id:genId(),name:foodName.trim(),price:foodPrice,emoji:icon}]);
     setFoodName('');setFoodPrice('');
   };
-  const handleFiles=e=>{
-    Array.from(e.target.files).forEach(file=>{
-      const r=new FileReader();
-      r.onload=ev=>setPhotos(ps=>[...ps,{id:genId(),src:ev.target.result,name:file.name}]);
-      r.readAsDataURL(file);
-    });
+
+  // Fixed: sequential processing with canvas compression to prevent freeze
+  const handleFiles=async e=>{
+    const files=Array.from(e.target.files);
+    if(!files.length)return;
     e.target.value='';
+    setPhotoLoading(true);
+    const newPhotos=await processFilesSequential(files);
+    setPhotos(ps=>[...ps,...newPhotos]);
+    setPhotoLoading(false);
   };
+
   const save=()=>{
     if(!form.homeTeam||!form.awayTeam||!form.stadium||!form.date){alert('日付・球場・ホーム・ビジターチームは必須です');return;}
-    onSave({...form,foods,photos,id:form.id||genId()});
+    onSave({...form,foods,photos,id:form.id||genId(),spaiaDetail:detail||undefined});
   };
   const tabs=[{key:'basic',label:'⚾ 試合情報'},{key:'food',label:'🍱 グルメ'},{key:'photo',label:'📷 写真'}];
+  const spaiaDayUrl=form.date?`https://spaia.jp/baseball/npb/schedule?date=${form.date.replace(/-/g,'')}`:'https://spaia.jp/baseball/npb/schedule';
+
   return(
     <div className="card">
       <div className="form-tabs">
@@ -554,54 +665,199 @@ function AddForm({initial,onSave,onCancel}){
       {ftab==='basic'&&<>
         <div className="section-title">試合情報</div>
         <div className="form-grid">
-          <div className="form-group"><label className="form-label">日付 *</label><input type="date" value={form.date} onChange={e=>set('date',e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">日付 *</label><input type="date" value={form.date} onChange={e=>{set('date',e.target.value);setFetchState('idle');setFetchGames([]);}}/></div>
           <div className="form-group"><label className="form-label">球場 *</label><select value={form.stadium} onChange={e=>set('stadium',e.target.value)}><option value="">選択してください</option>{STADIUMS.map(s=><option key={s}>{s}</option>)}</select></div>
         </div>
 
-        {/* AI FETCH PANEL */}
-        {canFetch && (
+        {/* SPAIA FETCH PANEL */}
+        {canFetch&&(
           <div style={{background:'linear-gradient(135deg,#1B2A4A,#253A60)',borderRadius:'12px',padding:'14px 16px',marginBottom:'14px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px'}}>
               <div>
-                <div style={{color:'var(--gold)',fontWeight:700,fontSize:'13px',marginBottom:'3px'}}>✨ 試合結果を自動取得</div>
-                <div style={{color:'rgba(255,255,255,0.5)',fontSize:'11px'}}>Web検索で対戦結果・総評を取得してフォームに反映します</div>
+                <div style={{color:'var(--gold)',fontWeight:700,fontSize:'13px',marginBottom:'3px'}}>⚾ SPAIA から試合結果を取得</div>
+                <div style={{color:'rgba(255,255,255,0.5)',fontSize:'11px'}}>当日の全試合一覧を取得してフォームに反映します</div>
               </div>
-              {fetchState !== 'applied' && (
+              {fetchState!=='applied'&&(
                 <button onClick={handleFetch} disabled={fetchState==='loading'}
                   style={{background:fetchState==='loading'?'rgba(212,168,67,0.4)':'var(--gold)',color:'var(--navy)',border:'none',borderRadius:'8px',padding:'9px 14px',fontFamily:'inherit',fontSize:'12px',fontWeight:700,cursor:fetchState==='loading'?'default':'pointer',flexShrink:0,minWidth:'80px',transition:'background 0.18s'}}>
-                  {fetchState==='loading'?'取得中...':'🔍 取得する'}
+                  {fetchState==='loading'?'取得中…':'🔍 取得する'}
                 </button>
               )}
-              {fetchState === 'applied' && (
-                <span style={{color:'#7ed67f',fontSize:'12px',fontWeight:700}}>✓ 反映済み</span>
-              )}
+              {fetchState==='applied'&&<span style={{color:'#7ed67f',fontSize:'12px',fontWeight:700}}>✓ 反映済み</span>}
             </div>
 
-            {fetchState==='loading' && (
-              <div style={{marginTop:'12px',color:'rgba(255,255,255,0.6)',fontSize:'12px',display:'flex',alignItems:'center',gap:'8px'}}>
+            {fetchState==='loading'&&(
+              <div style={{marginTop:'10px',color:'rgba(255,255,255,0.6)',fontSize:'12px',display:'flex',alignItems:'center',gap:'8px'}}>
                 <span style={{display:'inline-block',animation:'spin 1s linear infinite',fontSize:'14px'}}>⟳</span>
-                SportsNavi などから試合情報を検索中...
+                SPAIA から試合情報を取得中...
               </div>
             )}
 
-            {fetchState==='done' && fetchResult && (
-              <div style={{marginTop:'12px',background:'rgba(255,255,255,0.07)',borderRadius:'9px',padding:'12px 14px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'8px'}}>
-                  <span style={{color:'white',fontWeight:700,fontSize:'14px',flex:1}}>{fetchResult.homeTeam}</span>
-                  <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:'24px',color:'var(--gold)',letterSpacing:'2px'}}>{fetchResult.homeScore}–{fetchResult.awayScore}</span>
-                  <span style={{color:'white',fontWeight:700,fontSize:'14px',flex:1,textAlign:'right'}}>{fetchResult.awayTeam}</span>
-                </div>
-                {fetchResult.summary && (
-                  <p style={{color:'rgba(255,255,255,0.65)',fontSize:'12px',lineHeight:'1.7',marginBottom:'10px'}}>{fetchResult.summary}</p>
+            {fetchState==='done'&&fetchGames.length>0&&(
+              <div style={{marginTop:'12px'}}>
+                {fetchVia&&<div style={{color:'rgba(255,255,255,0.35)',fontSize:'10px',marginBottom:'7px'}}>取得元: {fetchVia}</div>}
+                <div style={{color:'rgba(255,255,255,0.55)',fontSize:'11px',marginBottom:'7px'}}>試合を選んでフォームに反映：</div>
+                {fetchGames.map((g,i)=>{
+                  const home=g.homeTeamName||'';
+                  const away=g.visitorTeamName||'';
+                  const hs=g.homeTeamTotalRuns;
+                  const as=g.visitorTeamTotalRuns;
+                  const hasScore=hs!=null&&as!=null&&g.gameStateId===4;
+                  const isFinished=g.gameStateId===4;
+                  const gameType=g.gameTypeName||'';
+                  const startTime=g.startTime?g.startTime.slice(0,2)+':'+g.startTime.slice(2):'';
+                  return(
+                    <button key={g.gameId||i} onClick={()=>applyGame(g)}
+                      style={{width:'100%',background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'9px',padding:'10px 12px',marginBottom:'7px',cursor:'pointer',transition:'background 0.15s',textAlign:'left'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.14)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.07)'}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'5px'}}>
+                        <span style={{fontSize:'10px',color:'rgba(255,255,255,0.4)',letterSpacing:'0.5px'}}>{gameType}{startTime?` · ${startTime}`:''}</span>
+                        <span style={{fontSize:'10px',color:isFinished?'rgba(255,255,255,0.4)':'#7ed67f'}}>{g.gameStateName||''}</span>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                        <span style={{color:'white',fontWeight:700,fontSize:'13px',flex:1}}>{home}</span>
+                        <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:'22px',color:'var(--gold)',letterSpacing:'2px',flexShrink:0}}>
+                          {hasScore?`${hs} – ${as}`:'VS'}
+                        </span>
+                        <span style={{color:'white',fontWeight:700,fontSize:'13px',flex:1,textAlign:'right'}}>{away}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {fetchState==='applied'&&selectedGame&&(
+              <div style={{marginTop:'10px'}}>
+                <div style={{color:'#7ed67f',fontSize:'12px',fontWeight:700,marginBottom:'8px'}}>✓ フォームに反映済み</div>
+
+                {detailLoading&&(
+                  <div style={{color:'rgba(255,255,255,0.55)',fontSize:'12px',display:'flex',alignItems:'center',gap:'8px'}}>
+                    <span style={{display:'inline-block',animation:'spin 1s linear infinite'}}>⟳</span> 詳細データを取得中...
+                  </div>
                 )}
-                <button onClick={applyFetchResult} style={{background:'var(--gold)',color:'var(--navy)',border:'none',borderRadius:'7px',padding:'8px 16px',fontFamily:'inherit',fontSize:'13px',fontWeight:700,cursor:'pointer',width:'100%'}}>
-                  ↓ フォームに反映する
-                </button>
+
+                {detailError&&<div style={{color:'#f08080',fontSize:'11px'}}>{detailError}</div>}
+
+                {detail&&(()=>{
+                  const ov=detail.overview;
+                  // Starters
+                  const homeStarters=detail.members.filter(m=>m.teamId===String(selectedGame.homeTeamId)&&m.startBatNo!=null).sort((a,b)=>a.startBatNo-b.startBatNo);
+                  const awayStarters=detail.members.filter(m=>m.teamId===String(selectedGame.visitorTeamId)&&m.startBatNo!=null).sort((a,b)=>a.startBatNo-b.startBatNo);
+                  // Pitchers sorted by no
+                  const homePitchers=detail.pitchers.filter(p=>p.teamId===String(selectedGame.homeTeamId)).sort((a,b)=>a.no-b.no);
+                  const awayPitchers=detail.pitchers.filter(p=>p.teamId===String(selectedGame.visitorTeamId)).sort((a,b)=>a.no-b.no);
+                  // HRs
+                  const parseHR=arr=>arr.flatMap(item=>{
+                    try{const info=JSON.parse(item.homerunInfo||'[]');return info.map(h=>({...h,teamId:item.teamId}));}catch{return[];}
+                  });
+                  const hrs=parseHR(detail.homers);
+
+                  return(
+                    <div style={{marginTop:'4px'}}>
+                      {/* Stadium & apply button */}
+                      {ov&&(
+                        <div style={{background:'rgba(255,255,255,0.07)',borderRadius:'8px',padding:'10px 12px',marginBottom:'8px'}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'6px'}}>
+                            <span style={{color:'var(--gold)',fontSize:'12px',fontWeight:700}}>📍 {ov.stadiumName||'球場不明'}</span>
+                            <button onClick={applyDetailToForm} style={{background:'var(--gold)',color:'var(--navy)',border:'none',borderRadius:'6px',padding:'5px 10px',fontSize:'11px',fontWeight:700,cursor:'pointer'}}>
+                              球場・総評をフォームに反映 ↓
+                            </button>
+                          </div>
+                          {ov.review&&<p style={{color:'rgba(255,255,255,0.6)',fontSize:'11px',lineHeight:1.7}}>{ov.review}</p>}
+                        </div>
+                      )}
+
+                      {/* Pitchers */}
+                      {(homePitchers.length>0||awayPitchers.length>0)&&(
+                        <div style={{background:'rgba(255,255,255,0.05)',borderRadius:'8px',padding:'10px 12px',marginBottom:'8px'}}>
+                          <div style={{color:'rgba(255,255,255,0.5)',fontSize:'10px',letterSpacing:'1px',marginBottom:'8px'}}>投手成績</div>
+                          {[{label:selectedGame.homeTeamName,pitchers:homePitchers},{label:selectedGame.visitorTeamName,pitchers:awayPitchers}].map(({label,pitchers})=>(
+                            pitchers.length===0?null:
+                            <div key={label} style={{marginBottom:'8px'}}>
+                              <div style={{color:'rgba(255,255,255,0.45)',fontSize:'10px',marginBottom:'5px'}}>{label}</div>
+                              {pitchers.map(p=>{
+                                const fl=pitcherFlagLabel(p.winLoseSaveHoldFlag);
+                                return(
+                                  <div key={p.playerId} style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'3px',fontSize:'12px'}}>
+                                    {fl
+                                      ? <span style={{background:fl.bg,color:fl.color,borderRadius:'4px',padding:'1px 6px',fontWeight:700,fontSize:'11px',minWidth:'20px',textAlign:'center'}}>{fl.label}</span>
+                                      : <span style={{minWidth:'20px'}}/>
+                                    }
+                                    <span style={{color:'white',fontWeight:500}}>{p.playerName.replace(/　/,' ')}</span>
+                                    <span style={{color:'rgba(255,255,255,0.4)',fontSize:'11px'}}>#{p.number}</span>
+                                    <span style={{color:'rgba(255,255,255,0.5)',fontSize:'11px',marginLeft:'auto'}}>{formatIP(p.ip,p.ip3)}回 {p.h}安{p.so}三 {p.r}失</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Home Runs */}
+                      {hrs.length>0&&(
+                        <div style={{background:'rgba(255,255,255,0.05)',borderRadius:'8px',padding:'10px 12px',marginBottom:'8px'}}>
+                          <div style={{color:'rgba(255,255,255,0.5)',fontSize:'10px',letterSpacing:'1px',marginBottom:'6px'}}>本塁打</div>
+                          {hrs.map((h,i)=>{
+                            const tname=String(h.teamId)===String(selectedGame.homeTeamId)?selectedGame.homeTeamName:selectedGame.visitorTeamName;
+                            return(
+                              <div key={i} style={{color:'white',fontSize:'12px',marginBottom:'3px',display:'flex',gap:'8px',alignItems:'center'}}>
+                                <span style={{fontSize:'16px'}}>💣</span>
+                                <span style={{fontWeight:700}}>{h.name_s}</span>
+                                <span style={{color:'rgba(255,255,255,0.4)',fontSize:'11px'}}>#{h.num} {tname}</span>
+                                <span style={{color:'var(--gold)',fontSize:'11px',marginLeft:'auto'}}>{h.inn}回 {h.runs}打点</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Starters */}
+                      {(homeStarters.length>0||awayStarters.length>0)&&(
+                        <div style={{background:'rgba(255,255,255,0.05)',borderRadius:'8px',padding:'10px 12px'}}>
+                          <div style={{color:'rgba(255,255,255,0.5)',fontSize:'10px',letterSpacing:'1px',marginBottom:'8px'}}>スタメン</div>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
+                            {[{label:selectedGame.homeTeamName,starters:homeStarters},{label:selectedGame.visitorTeamName,starters:awayStarters}].map(({label,starters})=>(
+                              <div key={label}>
+                                <div style={{color:'rgba(255,255,255,0.4)',fontSize:'10px',marginBottom:'5px'}}>{label}</div>
+                                {starters.map(m=>{
+                                  const isPitcher=String(m.startPosition)==='1';
+                                  return(
+                                    <div key={m.playerId} style={{display:'flex',gap:'5px',alignItems:'center',marginBottom:'2px',fontSize:'11px'}}>
+                                      <span style={{color:'rgba(255,255,255,0.55)',minWidth:'14px',textAlign:'center',fontWeight:700}}>{isPitcher?'投':m.startPosition}</span>
+                                      <span style={{color:'white'}}>{m.PlayerNameS||m.playerName?.split('　')[0]}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
-            {fetchState==='error' && (
-              <div style={{marginTop:'10px',color:'#f08080',fontSize:'12px'}}>{fetchError}</div>
+            {fetchState==='notfound'&&(
+              <div style={{marginTop:'10px',color:'rgba(255,255,255,0.5)',fontSize:'12px'}}>
+                この日の試合データが見つかりませんでした。
+                <a href={spaiaDayUrl} target="_blank" rel="noreferrer" style={{color:'var(--gold)',marginLeft:'6px'}}>SPAIAで確認 ↗</a>
+              </div>
+            )}
+
+            {(fetchState==='error'||fetchState==='cors')&&(
+              <div style={{marginTop:'10px'}}>
+                <div style={{color:'#ffd080',fontSize:'12px',marginBottom:'6px'}}>⚠️ 全ルートで取得できませんでした</div>
+                <div style={{color:'rgba(255,255,255,0.35)',fontSize:'10px',marginBottom:'8px',lineHeight:1.7,wordBreak:'break-all'}}>{fetchError}</div>
+                <a href={spaiaDayUrl} target="_blank" rel="noreferrer"
+                  style={{display:'inline-flex',alignItems:'center',gap:'5px',padding:'7px 14px',background:'var(--gold)',color:'var(--navy)',borderRadius:'7px',fontSize:'12px',fontWeight:700,textDecoration:'none'}}>
+                  SPAIA {form.date} の試合一覧を開く ↗
+                </a>
+              </div>
             )}
           </div>
         )}
@@ -644,15 +900,15 @@ function AddForm({initial,onSave,onCancel}){
           </div>
         ))}</div>}
         <input type="file" accept="image/*" multiple ref={fileRef} style={{display:'none'}} onChange={handleFiles}/>
-        <div className="upload-zone" onClick={()=>fileRef.current.click()}>
-          <div style={{fontSize:'30px',marginBottom:'7px'}}>📷</div>
-          <div style={{fontWeight:700,fontSize:'14px',marginBottom:'3px'}}>写真を追加する</div>
-          <div style={{fontSize:'12px',color:'var(--text-muted)'}}>クリックしてファイルを選択（複数選択可）</div>
+        <div className="upload-zone" onClick={()=>!photoLoading&&fileRef.current.click()} style={{opacity:photoLoading?0.6:1,cursor:photoLoading?'default':'pointer'}}>
+          <div style={{fontSize:'30px',marginBottom:'7px'}}>{photoLoading?'⏳':'📷'}</div>
+          <div style={{fontWeight:700,fontSize:'14px',marginBottom:'3px'}}>{photoLoading?'画像を処理中...':'写真を追加する'}</div>
+          <div style={{fontSize:'12px',color:'var(--text-muted)'}}>{photoLoading?'しばらくお待ちください':'クリックしてファイルを選択（複数選択可）'}</div>
         </div>
       </>}
       <div className="btn-row">
         <button className="btn-secondary" onClick={onCancel}>キャンセル</button>
-        <button className="btn-primary" onClick={save}>保存する ✓</button>
+        <button className="btn-primary" onClick={save} disabled={photoLoading}>保存する ✓</button>
       </div>
     </div>
   );
@@ -679,7 +935,205 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
         {game.seat&&<div className="detail-seat">🪑 {game.seat}</div>}
         {result&&<div className={`result-banner ${result==='WIN'?'win':result==='LOSE'?'lose':'draw'}`}>{result==='WIN'?'🎉 勝利！':result==='LOSE'?'😔 敗戦':'🤝 引き分け'}</div>}
       </div>
+      {/* 試合総評（SPAIA） */}
+      {game.spaiaDetail?.overview?.review&&(
+        <div className="card">
+          <div className="section-title">📝 試合総評</div>
+          <p style={{fontSize:'14px',lineHeight:'1.9',color:'var(--text)'}}>{game.spaiaDetail.overview.review}</p>
+        </div>
+      )}
+
       {game.memo&&<div className="card"><div className="section-title">観戦メモ</div><p style={{fontSize:'15px',lineHeight:'1.9',whiteSpace:'pre-wrap'}}>{game.memo}</p></div>}
+
+      {/* SPAIA 詳細データ */}
+      {game.spaiaDetail&&(()=>{
+        const sd=game.spaiaDetail;
+        const lv=sd.live||null;
+        const homeId=String(sd.overview?.homeTeamId||lv?.H_Score_ID||'');
+        const awayId=String(sd.overview?.visitorTeamId||lv?.V_Score_ID||'');
+        const homePitchers=(sd.pitchers||[]).filter(p=>String(p.teamId)===homeId).sort((a,b)=>a.no-b.no);
+        const awayPitchers=(sd.pitchers||[]).filter(p=>String(p.teamId)===awayId).sort((a,b)=>a.no-b.no);
+        const parseHR=arr=>(arr||[]).flatMap(item=>{try{const info=JSON.parse(item.homerunInfo||'[]');return info.map(h=>({...h,teamId:item.teamId}));}catch{return[];}});
+        const hrs=parseHR(sd.homers||[]);
+
+        const posLabel=pos=>{const p=String(pos);if(p==='1')return'投';if(p==='10')return'DH';return p;};
+
+        // Starters and substitutes per team - use batters data if available
+        const buildLineup=(teamId)=>{
+          const batSrc=(sd.batters||[]).filter(m=>String(m.teamId)===teamId&&m.originalTeamId!=null);
+          if(batSrc.length>0){
+            const slots={};
+            batSrc.forEach(p=>{
+              const slot=p.order||99;
+              if(!slots[slot])slots[slot]=[];
+              slots[slot].push(p);
+            });
+            const result=[];
+            Object.keys(slots).sort((a,b)=>Number(a)-Number(b)).forEach(slot=>{
+              slots[slot].sort((a,b)=>(a.orderStatus||9)-(b.orderStatus||9)).forEach(p=>{
+                let brs=[];
+                try{if(p.battingResult)brs=JSON.parse(p.battingResult);}catch{}
+                result.push({...p,isSub:p.orderStatus===3,plabel:posLabel(p.positionId),battingResults:brs});
+              });
+            });
+            return result;
+          }
+          // fallback: members starters only
+          return (sd.members||[]).filter(m=>String(m.teamId)===teamId&&m.startBatNo!=null)
+            .sort((a,b)=>a.startBatNo-b.startBatNo)
+            .map(m=>({...m,isSub:false,plabel:posLabel(m.startPosition),battingResults:[]}));
+        };
+        const homeLineup=buildLineup(homeId);
+        const awayLineup=buildLineup(awayId);
+
+        const PRow=({p})=>{
+          const fl=pitcherFlagLabel(p.winLoseSaveHoldFlag);
+          return(
+            <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'3px',fontSize:'12px'}}>
+              {fl
+                ?<span style={{background:fl.bg,color:fl.color,borderRadius:'3px',padding:'0 5px',fontWeight:700,fontSize:'10px'}}>{fl.label}</span>
+                :<span style={{display:'inline-block',width:'22px'}}/>
+              }
+              <span style={{fontWeight:500,flex:1}}>{(p.playerName||'').split(/[　 ]/)[0]}</span>
+              <span style={{color:'var(--text-muted)',fontSize:'10px'}}>{formatIP(p.ip,p.ip3)}回 {p.h}安 {p.so}K {p.r}失</span>
+            </div>
+          );
+        };
+
+        const PlayerRow=({m})=>{
+          const name=m.PlayerNameS||(m.playerName||'').split(/[　 ]/)[0]||'';
+          const pos=m.plabel||posLabel(m.positionId||m.startPosition);
+          const brColor=t=>t==='1'?'var(--green)':t==='2'?'#5e9cff':'var(--text-muted)';
+          return(
+            <div style={{marginBottom:'5px',paddingLeft:m.isSub?'10px':'0'}}>
+              <div style={{display:'flex',gap:'5px',alignItems:'center',fontSize:'12px',
+                color:m.isSub?'var(--text-muted)':'var(--text)'}}>
+                <span style={{color:'var(--navy)',fontWeight:700,minWidth:'20px',textAlign:'center',fontSize:'11px'}}>{pos}</span>
+                <span style={{flex:1}}>{name}</span>
+                {m.isSub&&<span style={{fontSize:'10px',color:'var(--text-muted)'}}>(代)</span>}
+                {m.h!=null&&<span style={{fontSize:'10px',color:'var(--text-muted)',marginLeft:'4px'}}>{m.ab}打数{m.h}安打{Number(m.rbi)>0?` ${m.rbi}打点`:''}</span>}
+              </div>
+              {(m.battingResults||[]).length>0&&(
+                <div style={{display:'flex',gap:'3px',flexWrap:'wrap',marginTop:'2px',paddingLeft:'25px'}}>
+                  {m.battingResults.map((br,i)=>(
+                    <span key={i} style={{fontSize:'10px',color:brColor(String(br.battingResultType)),background:'var(--ivory)',borderRadius:'3px',padding:'0 4px'}}>{br.battingResult}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        return(
+          <>
+            {/* live_games: 試合結果サマリー */}
+            {lv&&(
+              <div className="card">
+                <div className="section-title">📊 試合結果</div>
+                <div style={{overflowX:'auto'}}>
+                  <table style={{width:'100%',fontSize:'12px',borderCollapse:'collapse',minWidth:'300px'}}>
+                    <thead>
+                      <tr style={{borderBottom:'1px solid var(--ivory-dark)'}}>
+                        <th style={{textAlign:'left',padding:'4px 6px',color:'var(--text-muted)',fontWeight:500}}>チーム</th>
+                        {['R','H','BB','SB','E'].map(h=><th key={h} style={{padding:'4px 6px',color:'var(--text-muted)',fontWeight:500,textAlign:'center'}}>{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        {name:lv.H_Score_NameS,R:lv.H_Score_R,H:lv.H_Score_H,BB:lv.H_Score_BB,SB:lv.H_Score_SB,E:lv.H_Score_E},
+                        {name:lv.V_Score_NameS,R:lv.V_Score_R,H:lv.V_Score_H,BB:lv.V_Score_BB,SB:lv.V_Score_SB,E:lv.V_Score_E},
+                      ].map(row=>(
+                        <tr key={row.name} style={{borderBottom:'1px solid var(--ivory-dark)'}}>
+                          <td style={{padding:'6px',fontWeight:700}}>{row.name}</td>
+                          <td style={{padding:'6px',textAlign:'center',fontWeight:700,color:'var(--navy)'}}>{row.R}</td>
+                          <td style={{padding:'6px',textAlign:'center'}}>{row.H}</td>
+                          <td style={{padding:'6px',textAlign:'center'}}>{row.BB}</td>
+                          <td style={{padding:'6px',textAlign:'center'}}>{row.SB}</td>
+                          <td style={{padding:'6px',textAlign:'center',color:row.E>0?'var(--crimson)':'inherit'}}>{row.E}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{marginTop:'12px',display:'flex',flexWrap:'wrap',gap:'8px 14px'}}>
+                  {lv.End_WinPitcher_PlayerNameS&&(
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
+                      <span style={{background:'#eaf5eb',color:'var(--green)',borderRadius:'4px',padding:'1px 7px',fontSize:'11px',fontWeight:700}}>勝</span>
+                      <span style={{fontSize:'13px',fontWeight:700}}>{lv.End_WinPitcher_PlayerNameL||lv.End_WinPitcher_PlayerNameS}</span>
+                      <span style={{fontSize:'11px',color:'var(--text-muted)'}}>{lv.End_WinPitcher_Win}勝{lv.End_WinPitcher_Lose}敗</span>
+                    </div>
+                  )}
+                  {lv.End_LosePitcher_PlayerNameS&&(
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
+                      <span style={{background:'#fdf0ef',color:'var(--crimson)',borderRadius:'4px',padding:'1px 7px',fontSize:'11px',fontWeight:700}}>負</span>
+                      <span style={{fontSize:'13px',fontWeight:700}}>{lv.End_LosePitcher_PlayerNameL||lv.End_LosePitcher_PlayerNameS}</span>
+                      <span style={{fontSize:'11px',color:'var(--text-muted)'}}>{lv.End_LosePitcher_Win}勝{lv.End_LosePitcher_Lose}敗</span>
+                    </div>
+                  )}
+                  {lv.End_SavePitcher_PlayerNameS&&(
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
+                      <span style={{background:'#e8f0fb',color:'#1B6CA8',borderRadius:'4px',padding:'1px 7px',fontSize:'11px',fontWeight:700}}>S</span>
+                      <span style={{fontSize:'13px',fontWeight:700}}>{lv.End_SavePitcher_PlayerNameL||lv.End_SavePitcher_PlayerNameS}</span>
+                      <span style={{fontSize:'11px',color:'var(--text-muted)'}}>{lv.End_SavePitcher_Save}S</span>
+                    </div>
+                  )}
+                  {lv.End_GWRBIPlayer_PlayerNameS&&(
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
+                      <span style={{background:'#fff8e1',color:'#856000',borderRadius:'4px',padding:'1px 7px',fontSize:'11px',fontWeight:700}}>GW</span>
+                      <span style={{fontSize:'13px',fontWeight:700}}>{lv.End_GWRBIPlayer_PlayerNameL||lv.End_GWRBIPlayer_PlayerNameS}</span>
+                    </div>
+                  )}
+                </div>
+                {(lv.H_Relief_Pitcher_NameS||lv.V_Relief_Pitcher_NameS)&&(
+                  <div style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid var(--ivory-dark)',fontSize:'11px',color:'var(--text-muted)'}}>
+                    最終投手：
+                    {lv.H_Relief_Pitcher_NameS&&<span style={{marginRight:'10px'}}>{lv.H_Score_NameS} {lv.H_Relief_Pitcher_NameS}（{lv.H_Relief_Pitcher_Num}）</span>}
+                    {lv.V_Relief_Pitcher_NameS&&<span>{lv.V_Score_NameS} {lv.V_Relief_Pitcher_NameS}（{lv.V_Relief_Pitcher_Num}）</span>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 投手成績 + 本塁打 横並び */}
+            {(homePitchers.length>0||awayPitchers.length>0||hrs.length>0)&&(
+              <div style={{display:'grid',gridTemplateColumns:hrs.length>0?'1fr 1fr':'1fr',gap:'12px',marginBottom:'14px'}}>
+                {(homePitchers.length>0||awayPitchers.length>0)&&(
+                  <div className="card" style={{marginBottom:0}}>
+                    <div className="section-title">⚾ 投手成績</div>
+                    {homePitchers.length>0&&<><div style={{fontSize:'10px',color:'var(--text-muted)',fontWeight:700,marginBottom:'5px'}}>{game.homeTeam}</div>{homePitchers.map(p=><PRow key={p.playerId} p={p}/>)}</>}
+                    {awayPitchers.length>0&&<><div style={{fontSize:'10px',color:'var(--text-muted)',fontWeight:700,margin:'8px 0 5px'}}>{game.awayTeam}</div>{awayPitchers.map(p=><PRow key={p.playerId} p={p}/>)}</>}
+                  </div>
+                )}
+                {hrs.length>0&&(
+                  <div className="card" style={{marginBottom:0}}>
+                    <div className="section-title">💣 本塁打</div>
+                    {hrs.map((h,i)=>{
+                      const tname=String(h.teamId)===homeId?game.homeTeam:game.awayTeam;
+                      return(<div key={i} style={{marginBottom:'6px',fontSize:'12px'}}><div style={{fontWeight:700}}>{h.name_s} <span style={{color:'var(--crimson)'}}>{h.runs}打点</span></div><div style={{color:'var(--text-muted)',fontSize:'11px'}}>{h.inn}回 {tname}</div></div>);
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 出場選手 */}
+            {(homeLineup.length>0||awayLineup.length>0)&&(
+              <div className="card">
+                <div className="section-title">📋 出場選手</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+                  {[{label:game.homeTeam,lineup:homeLineup},{label:game.awayTeam,lineup:awayLineup}].map(({label,lineup})=>(
+                    <div key={label}>
+                      <div style={{fontSize:'11px',color:'var(--text-muted)',fontWeight:700,marginBottom:'7px'}}>{label}</div>
+                      {lineup.map((m,i)=><PlayerRow key={m.playerId+i} m={m}/>)}
+                    </div>
+                  ))}
+                </div>
+                <p style={{fontSize:'10px',color:'var(--text-muted)',marginTop:'10px'}}>※（代）は途中出場。守備位置はスタメン時の番号</p>
+              </div>
+            )}
+          </>
+        );
+      })()}
       {(game.foods||[]).length>0&&(
         <div className="card">
           <div className="section-title">球場グルメ ({game.foods.length}品)</div>
@@ -907,13 +1361,117 @@ function SwallowsView(){
   );
 }
 
+/* ---- AllFoodView ---- */
+function AllFoodView({games}){
+  const[lightbox,setLightbox]=useState(null);
+  const allFoods=useMemo(()=>{
+    const items=[];
+    games.forEach(g=>(g.foods||[]).forEach(f=>items.push({...f,gameDate:g.date,stadium:g.stadium,homeTeam:g.homeTeam,awayTeam:g.awayTeam})));
+    return items.sort((a,b)=>new Date(b.gameDate)-new Date(a.gameDate));
+  },[games]);
+  const totalSpent=allFoods.reduce((s,f)=>s+(parseInt(f.price)||0),0);
+  if(allFoods.length===0)return<div className="empty-state"><div className="empty-icon">🍱</div><div className="empty-title">グルメ記録がありません</div><div className="empty-desc">試合記録にグルメを追加するとここに表示されます</div></div>;
+  // Group by game date
+  const byDate={};
+  allFoods.forEach(f=>{const k=f.gameDate+'|'+f.homeTeam+'vs'+f.awayTeam;if(!byDate[k])byDate[k]={date:f.gameDate,homeTeam:f.homeTeam,awayTeam:f.awayTeam,stadium:f.stadium,foods:[]};byDate[k].foods.push(f);});
+  return(
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
+        <div style={{fontSize:'13px',color:'var(--text-muted)'}}>全{allFoods.length}品 · 総額 <strong style={{color:'var(--navy)'}}>¥{totalSpent.toLocaleString()}</strong></div>
+      </div>
+      {Object.values(byDate).map(({date,homeTeam,awayTeam,stadium,foods})=>(
+        <div key={date+homeTeam} className="card" style={{marginBottom:'12px'}}>
+          <div style={{marginBottom:'10px'}}>
+            <div style={{fontSize:'12px',color:'var(--gold)',fontWeight:700,letterSpacing:'0.5px'}}>{formatDate(date)}</div>
+            <div style={{fontSize:'13px',fontWeight:700,color:'var(--navy)',marginTop:'2px'}}>{homeTeam} vs {awayTeam}{stadium?` · ${stadium}`:''}</div>
+          </div>
+          {foods.map(f=>(
+            <div key={f.id} className="food-item">
+              <div className="food-icon">{f.emoji}</div>
+              <div className="food-name">{f.name}</div>
+              {f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}
+            </div>
+          ))}
+          {(()=>{const t=foods.reduce((s,f)=>s+(parseInt(f.price)||0),0);return t>0?<div className="food-total">合計 ¥{t.toLocaleString()}</div>:null;})()}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---- AllPhotoView ---- */
+function AllPhotoView({games}){
+  const[lightbox,setLightbox]=useState(null);
+  const[filter,setFilter]=useState('all');
+  const allPhotos=useMemo(()=>{
+    const items=[];
+    games.forEach(g=>(g.photos||[]).forEach(p=>items.push({...p,gameDate:g.date,stadium:g.stadium,homeTeam:g.homeTeam,awayTeam:g.awayTeam})));
+    return items.sort((a,b)=>new Date(b.gameDate)-new Date(a.gameDate));
+  },[games]);
+  if(allPhotos.length===0)return<div className="empty-state"><div className="empty-icon">📷</div><div className="empty-title">写真がありません</div><div className="empty-desc">試合記録に写真を追加するとここに表示されます</div></div>;
+  // Group by game
+  const byDate={};
+  allPhotos.forEach(p=>{const k=p.gameDate+'|'+p.homeTeam+'vs'+p.awayTeam;if(!byDate[k])byDate[k]={date:p.gameDate,homeTeam:p.homeTeam,awayTeam:p.awayTeam,stadium:p.stadium,photos:[]};byDate[k].photos.push(p);});
+  const groups=Object.values(byDate);
+  const lbPhotos=allPhotos;
+  return(
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
+        <div style={{fontSize:'13px',color:'var(--text-muted)'}}>全 <strong style={{color:'var(--navy)'}}>{allPhotos.length}</strong> 枚</div>
+        <div style={{display:'flex',gap:'6px'}}>
+          <button onClick={()=>setFilter('all')} style={{padding:'5px 12px',borderRadius:'20px',border:'1px solid var(--card-border)',background:filter==='all'?'var(--navy)':'var(--ivory)',color:filter==='all'?'white':'var(--text)',fontSize:'12px',cursor:'pointer',fontFamily:'inherit',fontWeight:filter==='all'?700:400}}>まとめて</button>
+          <button onClick={()=>setFilter('by-game')} style={{padding:'5px 12px',borderRadius:'20px',border:'1px solid var(--card-border)',background:filter==='by-game'?'var(--navy)':'var(--ivory)',color:filter==='by-game'?'white':'var(--text)',fontSize:'12px',cursor:'pointer',fontFamily:'inherit',fontWeight:filter==='by-game'?700:400}}>試合別</button>
+        </div>
+      </div>
+      {filter==='all'?(
+        <div className="photo-grid">
+          {allPhotos.map((p,i)=>(
+            <div key={p.id} className="photo-thumb" onClick={()=>setLightbox(i)}>
+              <img src={p.src} alt={p.name} loading="lazy"/>
+            </div>
+          ))}
+        </div>
+      ):(
+        groups.map(({date,homeTeam,awayTeam,stadium,photos})=>(
+          <div key={date+homeTeam} className="card" style={{marginBottom:'12px'}}>
+            <div style={{marginBottom:'10px'}}>
+              <div style={{fontSize:'12px',color:'var(--gold)',fontWeight:700,letterSpacing:'0.5px'}}>{formatDate(date)}</div>
+              <div style={{fontSize:'13px',fontWeight:700,color:'var(--navy)',marginTop:'2px'}}>{homeTeam} vs {awayTeam}{stadium?` · ${stadium}`:''}</div>
+              <div style={{fontSize:'11px',color:'var(--text-muted)',marginTop:'1px'}}>{photos.length}枚</div>
+            </div>
+            <div className="photo-grid">
+              {photos.map((p,i)=>(
+                <div key={p.id} className="photo-thumb" onClick={()=>setLightbox(allPhotos.findIndex(x=>x.id===p.id))}>
+                  <img src={p.src} alt={p.name} loading="lazy"/>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+      {lightbox!==null&&(
+        <div className="lightbox" onClick={()=>setLightbox(null)}>
+          <button className="lightbox-close" onClick={()=>setLightbox(null)}>×</button>
+          {lightbox>0&&<button onClick={e=>{e.stopPropagation();setLightbox(lightbox-1);}} style={{position:'absolute',left:'16px',top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.12)',border:'none',color:'white',fontSize:'24px',cursor:'pointer',width:'44px',height:'44px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
+          <img src={lbPhotos[lightbox].src} onClick={e=>e.stopPropagation()} alt="photo"/>
+          {lightbox<lbPhotos.length-1&&<button onClick={e=>{e.stopPropagation();setLightbox(lightbox+1);}} style={{position:'absolute',right:'16px',top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,0.12)',border:'none',color:'white',fontSize:'24px',cursor:'pointer',width:'44px',height:'44px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>}
+          <div style={{position:'absolute',bottom:'20px',left:'50%',transform:'translateX(-50%)',color:'rgba(255,255,255,0.5)',fontSize:'12px'}}>{lightbox+1} / {lbPhotos.length}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---- SettingsModal ---- */
-function SettingsModal({favTeam,bgPref,onSaveFav,onSaveBg,onClose}){
+function SettingsModal({favTeam,bgPref,games,onSaveFav,onSaveBg,onImport,onClose}){
   const[selTeam,setSelTeam]=useState(favTeam);
   const[selBg,setSelBg]=useState(bgPref.id||'default');
   const[opacity,setOpacity]=useState(bgPref.opacity!=null?bgPref.opacity:(BG_PRESETS.find(p=>p.id===bgPref.id)||{overlay:0}).overlay);
   const[customImg,setCustomImg]=useState(bgPref.img||null);
+  const[importResult,setImportResult]=useState(null);
   const imgRef=useRef();
+  const importRef=useRef();
+
   const handleImgUpload=e=>{
     const file=e.target.files[0];
     if(!file)return;
@@ -928,7 +1486,56 @@ function SettingsModal({favTeam,bgPref,onSaveFav,onSaveBg,onClose}){
     onSaveBg(newPref);
     onClose();
   };
-  const preset=BG_PRESETS.find(p=>p.id===selBg)||BG_PRESETS[0];
+
+  /* --- EXPORT --- */
+  const handleExport=()=>{
+    const payload={
+      version:1,
+      exportedAt:new Date().toISOString(),
+      games
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const d=new Date();
+    const stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    a.href=url;
+    a.download=`ballpark_log_${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /* --- IMPORT --- */
+  const handleImportFile=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const json=JSON.parse(ev.target.result);
+        if(!json.games||!Array.isArray(json.games)) throw new Error('games フィールドが見つかりません');
+        const count=json.games.length;
+        if(!confirm(`${count}件の観戦記録をインポートします。\n既存のデータに追加されます（重複は自動でスキップ）。\n続けますか？`)){
+          e.target.value='';return;
+        }
+        onImport(json.games);
+        setImportResult({type:'success',msg:`✓ ${count}件をインポートしました`});
+      }catch(err){
+        setImportResult({type:'error',msg:'⚠️ 読み込みに失敗しました：'+err.message});
+      }
+    };
+    r.readAsText(file);
+    e.target.value='';
+  };
+
+  /* --- RESET --- */
+  const handleReset=()=>{
+    if(!confirm('全ての観戦記録を削除します。この操作は元に戻せません。\n本当によろしいですか？'))return;
+    if(!confirm('最終確認：本当に全データを削除しますか？'))return;
+    onImport([]);
+    setImportResult({type:'success',msg:'✓ 全データを削除しました'});
+  };
+
   return(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e=>e.stopPropagation()}>
@@ -971,6 +1578,39 @@ function SettingsModal({favTeam,bgPref,onSaveFav,onSaveBg,onClose}){
           )}
         </div>
 
+        {/* DATA SECTION */}
+        <div className="data-section">
+          <div style={{fontSize:'11px',fontWeight:700,color:'var(--navy)',letterSpacing:'2px',textTransform:'uppercase',paddingBottom:'10px',borderBottom:'2px solid var(--gold)',marginBottom:'4px'}}>データ管理</div>
+          <p style={{fontSize:'12px',color:'var(--text-muted)',margin:'8px 0 0',lineHeight:1.7}}>
+            観戦記録を JSON ファイルとしてバックアップ・復元できます。<br/>機種変更や友達への引き継ぎに使えます。
+          </p>
+          <div className="data-btn-row">
+            <button className="data-btn" onClick={handleExport}>
+              <span className="data-btn-icon">📤</span>
+              <span className="data-btn-label">エクスポート</span>
+              <span className="data-btn-desc">{games.length}件をJSONで<br/>ダウンロード</span>
+            </button>
+            <button className="data-btn" onClick={()=>importRef.current.click()}>
+              <span className="data-btn-icon">📥</span>
+              <span className="data-btn-label">インポート</span>
+              <span className="data-btn-desc">JSONファイルから<br/>記録を読み込む</span>
+            </button>
+          </div>
+          <input type="file" accept=".json,application/json" ref={importRef} style={{display:'none'}} onChange={handleImportFile}/>
+          {importResult&&(
+            <div className={`import-result ${importResult.type}`}>{importResult.msg}</div>
+          )}
+          <div style={{marginTop:'10px'}}>
+            <button className="data-btn danger" style={{width:'100%',flexDirection:'row',gap:'10px',padding:'11px 14px',justifyContent:'flex-start'}} onClick={handleReset}>
+              <span className="data-btn-icon" style={{fontSize:'18px'}}>🗑️</span>
+              <div style={{textAlign:'left'}}>
+                <div className="data-btn-label">全データを削除</div>
+                <div className="data-btn-desc">記録をリセットします（取り消し不可）</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div className="btn-row" style={{marginTop:'20px'}}>
           <button className="btn-secondary" onClick={onClose}>キャンセル</button>
           <button className="btn-primary" onClick={handleSave}>保存する</button>
@@ -1008,6 +1648,14 @@ function App(){
   const switchTab=t=>{setTab(t);setView(t);setSelected(null);setEditGame(null);setQuery('');};
   const saveFav=t=>{setMyTeam(t);saveFavTeam(t);};
   const saveBg=p=>{setBgPref(p);saveBgPref(p);};
+  const handleImport=incoming=>{
+    if(incoming.length===0){setGames([]);return;}
+    setGames(current=>{
+      const existingIds=new Set(current.map(g=>g.id));
+      const newOnes=incoming.filter(g=>!existingIds.has(g.id));
+      return [...current,...newOnes].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    });
+  };
 
   const sorted=useMemo(()=>[...games].sort((a,b)=>new Date(b.date)-new Date(a.date)),[games]);
   const filtered=useMemo(()=>sorted.filter(g=>gameMatchesQuery(g,query)),[sorted,query]);
@@ -1024,6 +1672,8 @@ function App(){
           <nav className="header-nav">
             <button className={`nav-tab${tab==='list'?' active':''}`} onClick={()=>switchTab('list')}>観戦記録</button>
             <button className={`nav-tab${tab==='stats'?' active':''}`} onClick={()=>switchTab('stats')}>統計</button>
+            <button className={`nav-tab${tab==='allfood'?' active':''}`} onClick={()=>switchTab('allfood')}>🍱 グルメ帳</button>
+            <button className={`nav-tab${tab==='allphoto'?' active':''}`} onClick={()=>switchTab('allphoto')}>📷 アルバム</button>
             <button className={`nav-tab${tab==='weather'?' active':''}`} onClick={()=>switchTab('weather')}>⛅ 天気</button>
             <button className={`nav-tab${tab==='sportsnavi'?' active':''}`} onClick={()=>switchTab('sportsnavi')}>📰 SportsNavi</button>
             <button className={`nav-tab${tab==='swallows'?' active':''}`} onClick={()=>switchTab('swallows')} style={{color:tab==='swallows'?'var(--navy)':'rgba(255,255,255,0.55)'}}>🐦 スワローズ</button>
@@ -1058,6 +1708,8 @@ function App(){
           <GameDetail game={games.find(g=>g.id===selected.id)||selected} myTeam={myTeam} onBack={()=>{setSelected(null);setView('list');setTab('list');}} onEdit={handleEdit} onDelete={handleDelete}/>
         )}
         {view==='stats'&&<StatsView games={games} myTeam={myTeam}/>}
+        {view==='allfood'&&<AllFoodView games={games}/>}
+        {view==='allphoto'&&<AllPhotoView games={games}/>}
         {view==='weather'&&<WeatherView/>}
         {view==='sportsnavi'&&<SportsNaviView/>}
         {view==='swallows'&&<SwallowsView/>}
@@ -1075,6 +1727,12 @@ function App(){
           <button className="bnav-tab bnav-add" onClick={()=>{setEditGame(null);setView('add');setTab('add');}}>
             <span className="bnav-icon-circle">＋</span>
           </button>
+          <button className={`bnav-tab${tab==='allfood'?' active':''}`} onClick={()=>switchTab('allfood')}>
+            <span className="bnav-icon">🍱</span>グルメ
+          </button>
+          <button className={`bnav-tab${tab==='allphoto'?' active':''}`} onClick={()=>switchTab('allphoto')}>
+            <span className="bnav-icon">📷</span>アルバム
+          </button>
           <button className={`bnav-tab${tab==='weather'?' active':''}`} onClick={()=>switchTab('weather')}>
             <span className="bnav-icon">⛅</span>天気
           </button>
@@ -1090,7 +1748,7 @@ function App(){
         </div>
       </nav>
 
-      {showSettings&&<SettingsModal favTeam={myTeam} bgPref={bgPref} onSaveFav={saveFav} onSaveBg={saveBg} onClose={()=>setShowSettings(false)}/>}
+      {showSettings&&<SettingsModal favTeam={myTeam} bgPref={bgPref} games={games} onSaveFav={saveFav} onSaveBg={saveBg} onImport={handleImport} onClose={()=>setShowSettings(false)}/>}
     </>
   );
 }
