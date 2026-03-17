@@ -619,17 +619,17 @@ function AddForm({initial,onSave,onCancel}){
     try{
       const d=new Date(form.date+'T00:00:00');
       const matchday=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const result=await fetchSpaiaGameDetail(g.gameId,matchday,g.homeTeamId,g.visitorTeamId,g.gameTypeId||g.gameKindId||1);
+      const kindId=Number(g.gameKindId||g.gameTypeId||g.GameTypeID||1);
+      const result=await fetchSpaiaGameDetail(g.gameId||g.GameID,matchday,g.homeTeamId||g.H_Score_ID,g.visitorTeamId||g.V_Score_ID,kindId);
       setDetail(result);
+      // 球場を自動反映
+      const stadium=result.overview?.stadiumName||result.live?.StadiumName||'';
+      if(stadium){
+        const stMatch=STADIUMS.find(s=>s.includes(stadium)||stadium.includes(s.slice(0,4)));
+        if(stMatch)setForm(f=>({...f,stadium:stMatch}));
+      }
     }catch(e){setDetailError('詳細取得失敗: '+e.message);}
     setDetailLoading(false);
-  };
-
-  const applyDetailToForm=()=>{
-    if(!detail)return;
-    const stadium=detail.overview?.stadiumName||'';
-    const stMatch=STADIUMS.find(s=>s.includes(stadium)||stadium.includes(s.slice(0,4)));
-    setForm(f=>({...f,stadium:stMatch||f.stadium}));
   };
 
   const addFood=()=>{
@@ -760,10 +760,7 @@ function AddForm({initial,onSave,onCancel}){
                       {ov&&(
                         <div style={{background:'rgba(255,255,255,0.07)',borderRadius:'8px',padding:'10px 12px',marginBottom:'8px'}}>
                           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'6px'}}>
-                            <span style={{color:'var(--gold)',fontSize:'12px',fontWeight:700}}>📍 {ov.stadiumName||'球場不明'}</span>
-                            <button onClick={applyDetailToForm} style={{background:'var(--gold)',color:'var(--navy)',border:'none',borderRadius:'6px',padding:'5px 10px',fontSize:'11px',fontWeight:700,cursor:'pointer'}}>
-                              球場・総評をフォームに反映 ↓
-                            </button>
+                            <span style={{color:'var(--gold)',fontSize:'12px',fontWeight:700}}>📍 {ov.stadiumName||'球場不明'} <span style={{color:'#7ed67f',fontSize:'10px'}}>✓ フォームに反映済み</span></span>
                           </div>
                           {ov.review&&<p style={{color:'rgba(255,255,255,0.6)',fontSize:'11px',lineHeight:1.7}}>{ov.review}</p>}
                         </div>
@@ -878,7 +875,7 @@ function AddForm({initial,onSave,onCancel}){
         {foods.length===0&&<p style={{color:'var(--text-muted)',fontSize:'14px',textAlign:'center',padding:'16px 0'}}>まだグルメが登録されていません</p>}
         {foods.map(f=>(
           <div key={f.id} className="food-item">
-            <div className="food-icon">{f.emoji}</div>
+            
             <div className="food-name">{f.name}</div>
             {f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}
             <button className="food-remove" onClick={()=>setFoods(fs=>fs.filter(x=>x.id!==f.id))}>×</button>
@@ -958,30 +955,53 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
 
         const posLabel=pos=>{const p=String(pos);if(p==='1')return'投';if(p==='10')return'DH';return p;};
 
-        // Starters and substitutes per team - use batters data if available
+        // Starters and substitutes per team
+        // starting_members_for_flash が真のスタメン情報。batters は打席成績に使う
         const buildLineup=(teamId)=>{
-          const batSrc=(sd.batters||[]).filter(m=>String(m.teamId)===teamId&&m.originalTeamId!=null);
-          if(batSrc.length>0){
-            const slots={};
-            batSrc.forEach(p=>{
-              const slot=p.order||99;
-              if(!slots[slot])slots[slot]=[];
-              slots[slot].push(p);
+          // スタメン：starting_members_for_flash の startBatNo != null
+          const memberStarters=(sd.members||[])
+            .filter(m=>String(m.teamId)===teamId&&m.startBatNo!=null)
+            .sort((a,b)=>a.startBatNo-b.startBatNo);
+          const starterIds=new Set(memberStarters.map(m=>String(m.playerId)));
+
+          // batters データから打席成績を引くマップ
+          const batterMap={};
+          (sd.batters||[]).filter(m=>String(m.teamId)===teamId).forEach(b=>{
+            batterMap[String(b.playerId)]=b;
+          });
+
+          const result=[];
+          memberStarters.forEach(s=>{
+            const bat=batterMap[String(s.playerId)]||{};
+            let brs=[];try{if(bat.battingResult)brs=JSON.parse(bat.battingResult);}catch{}
+            result.push({
+              ...s,...bat,
+              isSub:false,
+              plabel:posLabel(s.startPosition),
+              battingResults:brs,
+              playerName:s.playerName||bat.playerName,
             });
-            const result=[];
-            Object.keys(slots).sort((a,b)=>Number(a)-Number(b)).forEach(slot=>{
-              slots[slot].sort((a,b)=>(a.orderStatus||9)-(b.orderStatus||9)).forEach(p=>{
-                let brs=[];
-                try{if(p.battingResult)brs=JSON.parse(p.battingResult);}catch{}
-                result.push({...p,isSub:p.orderStatus===3,plabel:posLabel(p.positionId),battingResults:brs});
-              });
+          });
+
+          // 途中出場：batters にいて starters に含まれない出場選手
+          (sd.batters||[])
+            .filter(b=>String(b.teamId)===teamId&&b.originalTeamId!=null&&!starterIds.has(String(b.playerId)))
+            .forEach(b=>{
+              let brs=[];try{if(b.battingResult)brs=JSON.parse(b.battingResult);}catch{}
+              // 同じ positionId のスタメンの直後に挿入
+              const insertAfterIdx=result.findIndex(r=>!r.isSub&&String(r.startPosition)===String(b.positionId));
+              const row={...b,isSub:true,plabel:posLabel(b.positionId),battingResults:brs};
+              if(insertAfterIdx>=0){
+                // そのスタメン以降の代打をすべて飛ばして最後の位置に挿入
+                let ins=insertAfterIdx+1;
+                while(ins<result.length&&result[ins].isSub&&String(result[ins].positionId)===String(b.positionId))ins++;
+                result.splice(ins,0,row);
+              }else{
+                result.push(row);
+              }
             });
-            return result;
-          }
-          // fallback: members starters only
-          return (sd.members||[]).filter(m=>String(m.teamId)===teamId&&m.startBatNo!=null)
-            .sort((a,b)=>a.startBatNo-b.startBatNo)
-            .map(m=>({...m,isSub:false,plabel:posLabel(m.startPosition),battingResults:[]}));
+
+          return result;
         };
         const homeLineup=buildLineup(homeId);
         const awayLineup=buildLineup(awayId);
@@ -1137,7 +1157,7 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
       {(game.foods||[]).length>0&&(
         <div className="card">
           <div className="section-title">球場グルメ ({game.foods.length}品)</div>
-          {game.foods.map(f=><div key={f.id} className="food-item"><div className="food-icon">{f.emoji}</div><div className="food-name">{f.name}</div>{f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}</div>)}
+          {game.foods.map(f=><div key={f.id} className="food-item"><div className="food-name">{f.name}</div>{f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}</div>)}
           {foodTotal>0&&<div className="food-total">合計 ¥{foodTotal.toLocaleString()}</div>}
         </div>
       )}
@@ -1387,7 +1407,7 @@ function AllFoodView({games}){
           </div>
           {foods.map(f=>(
             <div key={f.id} className="food-item">
-              <div className="food-icon">{f.emoji}</div>
+              
               <div className="food-name">{f.name}</div>
               {f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}
             </div>
