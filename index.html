@@ -564,109 +564,239 @@ async function processFilesSequential(files){
   return results;
 }
 
-/* ---- 神宮球場グルメリスト（2026シーズン） ---- */
+/* ---- 神宮球場グルメリスト（2026シーズン 店舗別） ---- */
 const JINGU_MENU=[
-  {cat:'⚾ 選手グルメ',items:[
-    // つばめ食堂 (shop-505)
+  // ===== 内野エリア =====
+  {shop:'🥔 ポテトマニア（内野G9）',area:'内野',items:[
+    {name:'のり！塩！ポテト（塩見泰隆）',price:800},
+    {name:'和風カレーポテト（中村優斗）',price:850},
+    {name:'オニオンフリット＆オニオンソースポテト（下川隼佑）',price:900},
+    {name:'トリプルチーズポテト（山田哲人）',price:900},
+    {name:'"並盛"じゃなくて"大盛"だよポテト（並木秀尊）',price:1100},
+    {name:'塩バターポテト（塩見泰隆）',price:750},
+    {name:'ホイップビクトリーチュロスパフェ（岩田幸宏）',price:850},
+    {name:'シナモンチュロス',price:700},
+    {name:'とちおとめスター☆スカッシュ（星知弥）',price:750},
+    {name:'ソルトポテト',price:''},
+  ]},
+  {shop:'🍦 サーティワン（内野G2・G18）',area:'内野',items:[
+    {name:'アイスクリーム（シングル）',price:''},
+    {name:'アイスクリーム（ダブル）',price:''},
+    {name:'サンデー',price:''},
+    {name:'パフェ',price:''},
+  ]},
+  {shop:'🐙 築地銀だこ（内野G4）',area:'内野',items:[
+    {name:'贅沢チーズ明太子たこ焼（長岡秀樹）',price:880},
+    {name:'でらうま！ひつまぶし丼（澤井廉）',price:1500},
+    {name:'にんにく倍々たこ焼（赤羽由紘）',price:880},
+    {name:'下町やっこ風たこ焼（清水昇）',price:880},
+    {name:'はちみつたっぷりクワトロチーズたこ焼（北村恵吾）',price:880},
+    {name:'果実たっぷりビタフレグレープフルーツサワー（中村優斗）',price:850},
+    {name:'満点からしマヨソースかつ丼（星知弥）',price:''},
+  ]},
+  {shop:'🥩 肉のくるりんぱ ジャストミート!!（内野G4）',area:'内野',items:[
+    {name:'国産牛しぐれ焼肉のわんぱく3色丼（内山壮真）',price:1400},
+    {name:'ミンゴのパワープレート ガーリックステーキライス（サンタナ）',price:1600},
+    {name:'パクパク食べれちゃう！旨辛みそ豚丼（松本健吾）',price:1300},
+    {name:'通なビーフカレー（木澤尚文）',price:1400},
+    {name:'トリプルローストポーク丼（山田哲人）',price:1400},
+    {name:'塩バターポテト（塩見泰隆）',price:750},
+    {name:'カリカリパスタ（増田珠）',price:600},
+    {name:'丸っと！丸ごときゅうり（丸山和郁）',price:500},
+    {name:'腕振る振るフルーツポンチソーダ（木澤尚文）',price:800},
+    {name:'リンゴアイスinシャインマスカットサイダー（赤羽由紘）',price:800},
+    {name:'塩レモンサワー（塩見泰隆）',price:''},
+  ]},
+  {shop:'🎪 きっちんくるりんぱ内野店（内野G4）',area:'内野',items:[
+    {name:'くずもっちりアイス キウイ/レモン/いちご（つば九郎）',price:400},
+    {name:'えみふる和牛バーガー（つば九郎）',price:1200},
+    {name:'もりもりポテト（つば九郎）',price:750},
+    {name:'デリウインナー（つば九郎）',price:900},
+    {name:'ベビーカステラ（つば九郎）',price:600},
+    {name:'しょーが(生姜)焼き丼（荘司宏太）',price:1300},
+    {name:'ガパオライス（丸山和郁）',price:1200},
+    {name:'えびふりゃー和牛カレー（澤井廉）',price:1600},
+    {name:'じんカラ南蛮丼（青木宣親GM）',price:1300},
+    {name:'ありが10！パインサワー',price:''},
+  ]},
+  {shop:'🍽️ つばめ食堂（内野G5）',area:'内野',items:[
     {name:'ガーリックマヨ玉焼肉丼（岩田幸宏）',price:1600},
     {name:'徳島ラーメン（武岡龍世）',price:1450},
-    {name:'八王子ラーメン（荘司宏太）',price:1450},
+    {name:'八王子ラーメン 温・冷（荘司宏太）',price:1450},
     {name:'オクラ旨だしとりそぼろ丼（山田哲人）',price:1200},
-    {name:'大好き！生姜いっかん丼（宮本慎也）',price:1600},
-    // 肉のくるりんぱ (shop-501)
-    {name:'国産牛しぐれ焼肉のわんぱく3色丼（内山壮真）',price:1400},
-    // 丼とぼんた (shop-514)
-    {name:'大学時代の想い出の味"ニラ牛肉丼"（木澤尚文）',price:1450},
-    {name:'海鮮"韋駄天"丼（並木秀尊）',price:''},
-    // うどんとぼんた (shop-512)
-    {name:'スペシャル玉ねぎ天うどん（武岡龍世）',price:1200},
-    // ポテトマニア (shop-507)
-    {name:'のり！塩！ポテト（塩見泰隆）',price:800},
-    {name:'和風カレーポテト（中村優斗）',price:''},
-    // 築地銀だこ (shop-496)
-    {name:'贅沢チーズ明太子たこ焼（長岡秀樹）',price:''},
-    // みかさ威風 (shop-549)
-    {name:'大好き麻婆やきそば（奥川恭伸）',price:''},
-    {name:'レモネードスカッシュ（木澤尚文）',price:600},
-    // きっちんくるりんぱ (shop-503)
-    {name:'えみふる和牛バーガー（つば九郎）',price:1200},
-    {name:'くずもっちりアイス（つば九郎）',price:400},
+    {name:'大好き！生姜いっかん丼（宮本慎也レジェンド）',price:1600},
+    {name:'石川県名物ハントンライス 50食限定（奥川恭伸）',price:1200},
+    {name:'推しりんごシェイク（武岡龍世）',price:900},
+    {name:'チョコバナナシェイク（長岡秀樹）',price:900},
+    {name:'ショートケーキ風シェイク 7-10月（岩田幸宏）',price:''},
   ]},
-  {cat:'🍱 弁当・丼もの',items:[
-    {name:'じんカラのり弁',price:''},
-    {name:'利久の牛たん丼弁当（たれ味）',price:1200},
-    {name:'叙々苑 牛切落し弁当',price:2200},
-    {name:'つば九郎米弁当',price:''},
-    {name:'巨人戦 深川めし弁当',price:1000},
-    {name:'阪神戦 焼肉・ホルモン弁当',price:1000},
-    {name:'横浜戦 神宮中華弁当',price:1000},
-    {name:'広島戦 あなごめし弁当',price:1000},
-    {name:'中日戦 味噌カツ重',price:1000},
-    {name:'国産牛しぐれ焼肉のわんぱく3色丼',price:1400},
-    {name:'ガーリックマヨ玉焼肉丼',price:1600},
-    {name:'オクラ旨だしとりそぼろ丼',price:1200},
-    {name:'大学時代の想い出の味"ニラ牛肉丼"',price:1450},
-    {name:'大好き！生姜いっかん丼',price:1600},
-    {name:'唐揚げ丼',price:''},
+  {shop:'🍚 丼とぼんた（内野G7）',area:'内野',items:[
+    {name:'大学時代の想い出の味"ニラ牛肉丼"（木澤尚文）',price:1450},
+    {name:'海鮮"韋駄天"丼（並木秀尊）',price:1350},
+    {name:'必勝そばめし ～トンカツのせ～（池山監督）',price:1500},
+    {name:'スタミナ丼（つば九郎）',price:1350},
+    {name:'すっきり爽やかパインコーラ（武岡龍世）',price:600},
+    {name:'冷凍パイナップル盛り（丸山和郁）',price:750},
+    {name:'お茶ハイ（小澤怜史）',price:800},
+    {name:'母校愛おはぎモナカ',price:''},
+  ]},
+  {shop:'🍜 うどんとぼんた（内野G7）',area:'内野',items:[
+    {name:'スペシャル玉ねぎ天うどん 温・冷（武岡龍世）',price:1200},
+    {name:'すっきり爽やかパインコーラ（武岡龍世）',price:600},
+    {name:'関西風うどん 温・冷（宮本丈）',price:1100},
+    {name:'山賊山菜そば 温・冷（赤羽由紘）',price:1200},
+    {name:'おにぎりBOX（大西広樹）',price:1200},
+    {name:'豚しゃぶカレーうどん 寒い時期限定（丸山和郁）',price:1100},
+  ]},
+  {shop:'🍛 欅 けやき（内野G7）',area:'内野',items:[
+    {name:'こだわりサムギョプサル丼（長岡秀樹）',price:1600},
+    {name:'ゴロっと"キャッチャー"シュー丼（古賀優大）',price:1400},
+    {name:'イチゴミルク（並木秀尊）',price:700},
+    {name:'シュワシュワフルーツサワー（増田珠）',price:900},
+    {name:'シュワシュワフルーツカルピスソーダ（増田珠）',price:''},
+    {name:'ビールカクテル各種',price:''},
+  ]},
+  {shop:'🍛 スタジアムカレー（内野G9）',area:'内野',items:[
+    {name:'ホウレン草チキンカレー ～焼きパイナップル乗せ～（丸山和郁）',price:1300},
+    {name:'そうマンゴーラッシー ～パンナコッタ入り～（内山壮真）',price:850},
+    {name:'モギモギ（モリモリ）仙台牛のハヤシライス（茂木栄五郎）',price:1500},
+    {name:'思い出の味！国産和牛のせ麻婆豆腐カレー',price:''},
     {name:'スタジアムカレー',price:''},
   ]},
-  {cat:'🍜 麺類',items:[
-    {name:'徳島ラーメン',price:1450},
-    {name:'八王子ラーメン（温・冷）',price:1450},
-    {name:'スペシャル玉ねぎ天うどん（温・冷）',price:1200},
-    {name:'大好き麻婆やきそば',price:''},
-    {name:'神宮やきそば',price:''},
-    {name:'神保町やきそば（みかさ威風）',price:''},
-    {name:'家系ラーメン（壱角家）',price:900},
-    {name:'MAXラーメン全部乗せ（壱角家）',price:1250},
-    {name:'バター醤油焼きそば（壱角家）',price:700},
-    {name:'もちもち水餃子',price:550},
+  {shop:'🌭 ウインナーとビールのお店（内野G9）',area:'内野',items:[
+    {name:'じんコロ（まぐろコロッケ 4個）',price:800},
+    {name:'じんコロ特製シーフードクリームソース仕立て（茂木栄五郎）',price:1150},
+    {name:'チョコ＆バナナソースたっぷり！フレンチトーストパフェ（長岡秀樹）',price:950},
+    {name:'香薫ウインナー（つば九郎カップ）',price:900},
+    {name:'ウインナー（並）',price:850},
+    {name:'ウインナー（大盛）',price:1050},
+    {name:'ウインナーメガ盛',price:1600},
+    {name:'香薫ウインナー＆じんカラ',price:''},
   ]},
-  {cat:'🍗 ファストフード',items:[
-    {name:'じんカラ（神宮球場からあげ）',price:''},
-    {name:'じんカツ（カツサンド）',price:''},
-    {name:'じんカラ＆じんカツセット',price:''},
-    {name:'えみふる和牛バーガー',price:1200},
-    {name:'ピザーラ チーズラバー（1ピース）',price:450},
-    {name:'ピザーラ テリヤキチキン（1ピース）',price:450},
-    {name:'石山泰稚の石やマルゲリータ',price:950},
+  {shop:'🥟 黒ぶたや シュウマイとぶた丼（内野G9）',area:'内野',items:[
+    {name:'ぶたまん（つば九郎）',price:800},
+    {name:'増田シュー(珠)マイ弁当（増田珠）',price:1500},
+    {name:'スタミナ満点ガーリックまぜそば（奥川恭伸）',price:1300},
+    {name:'"ごま油香る"豚キム丼（高橋奎二）',price:''},
+    {name:'黒豚ジャンボ焼売',price:''},
+  ]},
+  {shop:'🎮 パワプロ＆プロスピCafe（内野G12）',area:'内野',items:[
+    {name:'コラボスイーツ各種',price:''},
+    {name:'コラボドリンク各種',price:''},
+  ]},
+  // ===== 外野エリア =====
+  {shop:'🍜 神保町やきそば みかさ威風（外野G13）',area:'外野',items:[
+    {name:'レモネードスカッシュ（木澤尚文）',price:600},
+    {name:'大学芋風スイーツポテト（内山壮真）',price:800},
+    {name:'大好き麻婆やきそば（奥川恭伸）',price:''},
+    {name:'神保町やきそば',price:''},
+    {name:'神保町やきそば 大盛',price:''},
+  ]},
+  {shop:'🍗 塚田農場スタンド（外野G13）',area:'外野',items:[
+    {name:'"輝け"ダイヤモンドマンゴーサワー（長岡秀樹）',price:950},
+    {name:'若鶏のネギ塩からあげ丼',price:''},
+    {name:'チキン南蛮',price:''},
+    {name:'炭火焼き各種',price:''},
+  ]},
+  {shop:'🐟 築地場外市場 神宮球場店（外野G14）',area:'外野',items:[
+    {name:'そうまぐろポキ丼（内山壮真）',price:1500},
+    {name:'つば九郎カップ 絶品玉子焼き串',price:700},
+    {name:'まぐろ各種',price:''},
+  ]},
+  {shop:'🩷 Pink dot.（外野G14）',area:'外野',items:[
+    {name:'タピオカミルクティー',price:450},
+    {name:'黒糖タピオカミルクコーヒー',price:450},
+    {name:'武岡龍世の黒糖ロイヤルミルクティー',price:800},
+    {name:'長岡秀樹のナガタピオカロイヤルミルクティー',price:800},
+    {name:'内山壮真のブルーゼリーフロートドリンク',price:''},
     {name:'チュリトス',price:500},
-    {name:'チキンナゲット',price:450},
-    {name:'たこ焼き（築地銀だこ）',price:''},
-    {name:'贅沢チーズ明太子たこ焼',price:''},
+  ]},
+  {shop:'🍕 ピザーラエクスプレス（外野G14）',area:'外野',items:[
+    {name:'テリヤキチキンピザ（1枚）',price:550},
+    {name:'北海道産マスカルポーネと熟成サラミピザ（1枚）',price:550},
+    {name:'BBQベーコンチェダーピザ（サンタナ）',price:''},
+    {name:'石山泰稚の石やマルゲリータ',price:''},
+    {name:'シングルセット（ピザ1枚＋ドリンク）',price:950},
+    {name:'メガ盛りポテト',price:850},
+    {name:'チュリトス（1本）',price:550},
+    {name:'抹茶ミルクチュリトス（つば九郎）',price:650},
+    {name:'チョコバナナチュリトス（長岡秀樹）',price:650},
+  ]},
+  {shop:'🔥 鉄板酒場 鐵一（外野G14）',area:'外野',items:[
+    {name:'厚切り豚丼',price:950},
+    {name:'鉄板ソース焼きそば',price:750},
+    {name:'旨辛チョリソー',price:''},
+    {name:'唐揚げ',price:''},
+    {name:'生ビール',price:''},
+  ]},
+  {shop:'🍋 じんレモ酒場（外野G19）',area:'外野',items:[
+    {name:'じんレモ（神宮球場レモンサワー）',price:''},
+    {name:'おやじんレモ',price:''},
+    {name:'じんレモ メガサイズ',price:''},
+    {name:'じんレモ ノンアルコール',price:''},
+    {name:'フレーバーじんレモ各種',price:''},
+  ]},
+  {shop:'🍤 天ぷらとワイン大塩（外野G20）',area:'外野',items:[
+    {name:'天ぷら各種',price:''},
+    {name:'天ぷら盛り合わせ',price:''},
+    {name:'ワイン',price:''},
+  ]},
+  {shop:'🥩 大阪焼肉・ホルモン ふたご（外野G21）',area:'外野',items:[
+    {name:'究極三種の焼肉丼（山田哲人）',price:1600},
+    {name:'ベリーベリーカスタードパフェ（丸山和郁）',price:''},
+    {name:'ホルモン炒め',price:''},
+    {name:'焼肉盛り合わせ',price:''},
+  ]},
+  {shop:'🥟 宮崎餃子専門店 おざわ（外野G22）',area:'外野',items:[
     {name:'みやざき餃子（5個）',price:700},
     {name:'手羽餃子',price:''},
     {name:'みやざきご当地おつまみセット',price:1500},
-    {name:'おにぎり（ぼんたぼんた）',price:''},
-    {name:'唐揚げ（丼とぼんた）',price:''},
+    {name:'からあげ',price:''},
   ]},
-  {cat:'🦪 おつまみ',items:[
-    {name:'のり！塩！ポテト',price:800},
-    {name:'和風カレーポテト',price:''},
-    {name:'もりもりポテト',price:750},
-    {name:'大学芋風スイーツポテト',price:800},
-    {name:'牡蠣の浜焼き（だんまや水産）',price:''},
-    {name:'いかポッポ焼き（だんまや水産）',price:''},
-    {name:'焼肉盛り合わせ',price:''},
-    {name:'ホルモン炒め',price:''},
-    {name:'ごぼち（ゴボウチップス）',price:''},
-    {name:'枝豆',price:''},
+  {shop:'🐙 築地銀だこ TOKYO STADIUM（外野G14）',area:'外野',items:[
+    {name:'贅沢チーズ明太子たこ焼（長岡秀樹）',price:''},
+    {name:'丸山和郁のタレかつ丼',price:''},
+    {name:'赤羽由紘のピーチハイボール',price:''},
+    {name:'赤羽由紘のカルピスピーチ',price:''},
+    {name:'高橋奎二のパフェ',price:''},
   ]},
-  {cat:'🍨 スイーツ・ドリンク',items:[
-    {name:'くずもっちりアイス',price:400},
-    {name:'サーティワンアイスクリーム',price:''},
-    {name:'チュリトス（Pink dot.）',price:500},
-    {name:'タピオカミルクティー',price:450},
-    {name:'黒糖タピオカミルクコーヒー',price:450},
-    {name:'つば九郎カップ 玉子焼き串（築地場外）',price:700},
-    {name:'武岡龍世のすっきり爽やかパインコーラ',price:600},
-    {name:'木澤尚文のレモネードスカッシュ',price:600},
-    {name:'じんレモ（神宮球場レモンサワー）',price:''},
-    {name:'おやじんレモ',price:''},
-    {name:'生ビール',price:''},
-    {name:'ハイボール',price:''},
-    {name:'つば九郎ベビーカステラ',price:''},
-    {name:'つば九郎焼き',price:''},
+  {shop:'🍖 ルウ・ジャパン（外野）',area:'外野',items:[
+    {name:'石川雅規の秋田郷土料理うどん',price:''},
+    {name:'比内地鶏のつゆ使用 冷やしうどん',price:''},
+    {name:'松本健吾の讃岐うどんイメージ うどん',price:''},
+    {name:'肉肉しい豚肉の塩だれ丼',price:''},
+    {name:'奥川恭伸の巨峰サワー',price:''},
+  ]},
+  {shop:'🐟 築地場外市場 神宮球場店（外野G14）',area:'外野',items:[
+    {name:'そうまぐろポキ丼（内山壮真）',price:1500},
+    {name:'つば九郎カップ 絶品玉子焼き串',price:700},
+    {name:'まぐろ刺身',price:''},
+  ]},
+  // ===== 外周エリア・キッチンカー =====
+  {shop:'🏟️ じんカラキッチンカー（外周）',area:'外周',items:[
+    {name:'じんカラ（5個）',price:800},
+    {name:'じんカラ大盛り（9個）',price:1300},
+    {name:'じんカラメガ盛り（14個）',price:2100},
+    {name:'じんカラ丼',price:1050},
+    {name:'カレー＆チーズじんカラ丼（中村悠平）',price:1350},
+    {name:'群馬名物下仁田ネギじんカラ＆ポテト（伊藤琉偉）',price:1000},
+  ]},
+  {shop:'🐦 つばみキッチンカー（外周）',area:'外周',items:[
+    {name:'つばみ定食（数量限定）',price:''},
+    {name:'つばみコラボドリンク各種',price:''},
+  ]},
+  {shop:'🌯 ハッピーケバブ（外周）',area:'外周',items:[
+    {name:'ケバブ',price:''},
+    {name:'ケバブサンド',price:''},
+  ]},
+  {shop:'☕ T-gauge coffee（外周）',area:'外周',items:[
+    {name:'カフェラテ',price:''},
+    {name:'エチオピア産コーヒー',price:''},
+    {name:'フルーツシェイク',price:''},
+  ]},
+  {shop:'🍢 もつの助（外周）',area:'外周',items:[
+    {name:'もつ煮込み',price:''},
+    {name:'もつ串',price:''},
   ]},
 ];
 function AddForm({initial,onSave,onCancel}){
@@ -686,7 +816,8 @@ function AddForm({initial,onSave,onCancel}){
   const[detailLoading,setDetailLoading]=useState(false);
   const[detailError,setDetailError]=useState('');
   const[photoLoading,setPhotoLoading]=useState(false);
-  const[menuCat,setMenuCat]=useState(JINGU_MENU[0].cat);
+  const[menuCat,setMenuCat]=useState(JINGU_MENU[0].shop);
+  const[menuArea,setMenuArea]=useState('内野');
   const[menuOpen,setMenuOpen]=useState(false);
   const fileRef=useRef();
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
@@ -981,7 +1112,9 @@ function AddForm({initial,onSave,onCancel}){
 
         {/* 神宮球場限定メニューピッカー */}
         {form.stadium&&form.stadium.includes('神宮')&&(()=>{
-          const curCat=JINGU_MENU.find(c=>c.cat===menuCat)||JINGU_MENU[0];
+          const areas=['内野','外野','外周'];
+          const shopsInArea=JINGU_MENU.filter(c=>c.area===menuArea);
+          const curShop=shopsInArea.find(c=>c.shop===menuCat)||shopsInArea[0]||JINGU_MENU[0];
           return(
             <div style={{marginBottom:'14px',border:'1px solid var(--gold)',borderRadius:'10px',overflow:'hidden'}}>
               <button onClick={()=>setMenuOpen(o=>!o)}
@@ -991,23 +1124,32 @@ function AddForm({initial,onSave,onCancel}){
               </button>
               {menuOpen&&(
                 <div style={{background:'var(--ivory)',padding:'10px 12px'}}>
-                  {/* カテゴリータブ */}
-                  <div style={{display:'flex',gap:'6px',flexWrap:'wrap',marginBottom:'10px'}}>
-                    {JINGU_MENU.map(c=>(
-                      <button key={c.cat} onClick={()=>setMenuCat(c.cat)}
-                        style={{background:menuCat===c.cat?'var(--navy)':'var(--ivory-dark)',color:menuCat===c.cat?'white':'var(--text)',border:'1px solid var(--border)',borderRadius:'20px',padding:'4px 10px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit'}}>
-                        {c.cat}
+                  {/* エリアタブ */}
+                  <div style={{display:'flex',gap:'6px',marginBottom:'8px'}}>
+                    {areas.map(a=>(
+                      <button key={a} onClick={()=>{setMenuArea(a);const first=JINGU_MENU.find(c=>c.area===a);if(first)setMenuCat(first.shop);}}
+                        style={{background:menuArea===a?'var(--crimson)':'var(--ivory-dark)',color:menuArea===a?'white':'var(--text)',border:'1px solid var(--border)',borderRadius:'6px',padding:'4px 12px',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>
+                        {a==='内野'?'🏟内野':a==='外野'?'🌿外野':'🚐外周'}
+                      </button>
+                    ))}
+                  </div>
+                  {/* 店舗タブ */}
+                  <div style={{display:'flex',gap:'5px',flexWrap:'wrap',marginBottom:'10px',maxHeight:'80px',overflowY:'auto'}}>
+                    {shopsInArea.map(c=>(
+                      <button key={c.shop} onClick={()=>setMenuCat(c.shop)}
+                        style={{background:menuCat===c.shop?'var(--navy)':'white',color:menuCat===c.shop?'white':'var(--text)',border:`1px solid ${menuCat===c.shop?'var(--navy)':'var(--border)'}`,borderRadius:'20px',padding:'3px 9px',fontSize:'10px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>
+                        {c.shop}
                       </button>
                     ))}
                   </div>
                   {/* メニュー一覧 */}
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',maxHeight:'220px',overflowY:'auto'}}>
-                    {curCat.items.map(item=>(
+                    {(curShop?.items||[]).map(item=>(
                       <button key={item.name} onClick={()=>{setFoodName(item.name);if(item.price)setFoodPrice(String(item.price));setMenuOpen(false);}}
                         style={{background:'white',border:'1px solid var(--border)',borderRadius:'8px',padding:'8px 10px',cursor:'pointer',textAlign:'left',fontFamily:'inherit',transition:'background 0.1s'}}
                         onMouseEnter={e=>e.currentTarget.style.background='#f0f4ff'}
                         onMouseLeave={e=>e.currentTarget.style.background='white'}>
-                        <div style={{fontSize:'12px',fontWeight:600,color:'var(--navy)',lineHeight:1.4}}>{item.name}</div>
+                        <div style={{fontSize:'11px',fontWeight:600,color:'var(--navy)',lineHeight:1.4}}>{item.name}</div>
                         {item.price&&<div style={{fontSize:'11px',color:'var(--text-muted)',marginTop:'2px'}}>¥{item.price.toLocaleString()}</div>}
                       </button>
                     ))}
@@ -1244,6 +1386,12 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
                       <span style={{background:'#e8f0fb',color:'#1B6CA8',borderRadius:'4px',padding:'1px 7px',fontSize:'11px',fontWeight:700}}>S</span>
                       <span style={{fontSize:'13px',fontWeight:700}}>{lv.End_SavePitcher_PlayerNameL||lv.End_SavePitcher_PlayerNameS}</span>
                       <span style={{fontSize:'11px',color:'var(--text-muted)'}}>{lv.End_SavePitcher_Save}S</span>
+                    </div>
+                  )}
+                  {lv.End_GWRBIPlayer_PlayerNameS&&(
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
+                      <span style={{background:'#fff8e1',color:'#856000',borderRadius:'4px',padding:'1px 7px',fontSize:'11px',fontWeight:700}}>GW打点</span>
+                      <span style={{fontSize:'13px',fontWeight:700}}>{lv.End_GWRBIPlayer_PlayerNameL||lv.End_GWRBIPlayer_PlayerNameS}</span>
                     </div>
                   )}
                 </div>
