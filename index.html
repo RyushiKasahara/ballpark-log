@@ -301,18 +301,18 @@ const STADIUMS=['明治神宮野球場','東京ドーム','横浜スタジアム
 const WEATHER=['☀️ 晴れ','⛅ 曇り','🌧️ 雨中断あり','🌧️ 雨','❄️ 雪','🌙 ナイター（晴れ）','🌙 ナイター（曇り）'];
 const FOOD_ICONS=['🍱','🌭','🍗','🍜','🍣','🍺','🥤','🍦','🍿','🍔','🥜','🍙','🍤','🧆','🥪'];
 const STADIUM_COORDS={
-  '東京ドーム':{lat:35.7056,lng:139.7517,city:'東京'},
-  'バンテリンドームナゴヤ':{lat:35.1850,lng:136.9469,city:'名古屋'},
-  '甲子園球場':{lat:34.7196,lng:135.3609,city:'西宮'},
-  'マツダスタジアム':{lat:34.3916,lng:132.4844,city:'広島'},
-  '横浜スタジアム':{lat:35.4438,lng:139.6381,city:'横浜'},
-  '明治神宮野球場':{lat:35.6735,lng:139.7167,city:'東京'},
-  'みずほPayPayドーム福岡':{lat:33.5952,lng:130.3640,city:'福岡'},
-  '楽天モバイルパーク宮城':{lat:38.2586,lng:140.9003,city:'仙台'},
-  'ZOZOマリンスタジアム':{lat:35.6451,lng:140.0314,city:'千葉'},
-  'ベルーナドーム':{lat:35.7762,lng:139.4126,city:'所沢'},
-  'エスコンフィールドHOKKAIDO':{lat:43.3963,lng:141.6364,city:'北広島'},
-  '京セラドーム大阪':{lat:34.6668,lng:135.4757,city:'大阪'}
+  '明治神宮野球場':{lat:35.6735,lng:139.7167,city:'東京'},         // 0km
+  '東京ドーム':{lat:35.7056,lng:139.7517,city:'東京'},              // ≈5km
+  '横浜スタジアム':{lat:35.4438,lng:139.6381,city:'横浜'},          // ≈30km
+  'ベルーナドーム':{lat:35.7762,lng:139.4126,city:'所沢'},           // ≈40km
+  'ZOZOマリンスタジアム':{lat:35.6451,lng:140.0314,city:'千葉'},    // ≈43km
+  'バンテリンドームナゴヤ':{lat:35.1850,lng:136.9469,city:'名古屋'}, // ≈270km
+  '甲子園球場':{lat:34.7196,lng:135.3609,city:'西宮'},              // ≈500km
+  '京セラドーム大阪':{lat:34.6668,lng:135.4757,city:'大阪'},        // ≈510km
+  'マツダスタジアム':{lat:34.3916,lng:132.4844,city:'広島'},         // ≈680km
+  'みずほPayPayドーム福岡':{lat:33.5952,lng:130.3640,city:'福岡'},  // ≈900km
+  '楽天モバイルパーク宮城':{lat:38.2586,lng:140.9003,city:'仙台'}, // ≈310km
+  'エスコンフィールドHOKKAIDO':{lat:43.3963,lng:141.6364,city:'北広島'}, // ≈820km
 };
 
 const BG_PRESETS=[
@@ -453,7 +453,18 @@ function GameCard({game,myTeam,onClick,query}){
   );
 }
 
-/* ---- SPAIA fetch ---- */
+/* ---- TheSportsDB fetch ---- */
+
+/* Backward compat: spaiaDetail display helpers */
+function pitcherFlagLabel(flag){
+  if(flag==='1')return{label:'勝',color:'#2e7d32',bg:'#eaf5eb'};
+  if(flag==='2')return{label:'負',color:'var(--crimson)',bg:'#fdf0ef'};
+  if(flag==='3')return{label:'S',color:'#1B6CA8',bg:'#e8f0fb'};
+  if(flag==='4')return{label:'H',color:'#856000',bg:'#fff8e1'};
+  return null;
+}
+function formatIP(ip,ip3){return ip3?`${ip}.${ip3}`:`${ip||0}`;}
+
 const TEAM_NAME_MAP={
   'giants':'読売ジャイアンツ','baystars':'横浜DeNAベイスターズ','tigers':'阪神タイガース',
   'carp':'広島東洋カープ','dragons':'中日ドラゴンズ','swallows':'東京ヤクルトスワローズ',
@@ -474,65 +485,56 @@ function normalizeTeam(s){
 }
 
 /* generic proxy fetch */
-async function fetchWithProxy(targetUrl,timeout=7000){
-  const routes=[
-    {label:'直接',  fn:()=>fetch(targetUrl,{mode:'cors'})},
-    {label:'proxy①',fn:()=>fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`)},
-    {label:'proxy②',fn:()=>fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`)},
-    {label:'proxy③',fn:()=>fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`)},
-    {label:'proxy④',fn:()=>fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`)},
-  ];
-  const errors=[];
-  for(const{label,fn}of routes){
-    try{
-      const resp=await Promise.race([fn(),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),timeout))]);
-      if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
-      const text=await resp.text();
-      return{json:JSON.parse(text),via:label};
-    }catch(e){errors.push(`${label}: ${e.message}`);}
-  }
-  throw new Error(errors.join(' / '));
+/* ---- TheSportsDB NPB API (League ID: 4591, free key: 3) ---- */
+const TSDB_TEAM_MAP={
+  'Yakult Swallows':'東京ヤクルトスワローズ','Tokyo Yakult Swallows':'東京ヤクルトスワローズ',
+  'Yomiuri Giants':'読売ジャイアンツ','Tokyo Giants':'読売ジャイアンツ','Giants':'読売ジャイアンツ',
+  'Hanshin Tigers':'阪神タイガース','Tigers':'阪神タイガース',
+  'Hiroshima Carp':'広島東洋カープ','Carp':'広島東洋カープ',
+  'Chunichi Dragons':'中日ドラゴンズ','Dragons':'中日ドラゴンズ',
+  'DeNA BayStars':'横浜DeNAベイスターズ','Yokohama DeNA BayStars':'横浜DeNAベイスターズ',
+  'Yokohama BayStars':'横浜DeNAベイスターズ','BayStars':'横浜DeNAベイスターズ',
+  'SoftBank Hawks':'福岡ソフトバンクホークス','Fukuoka SoftBank Hawks':'福岡ソフトバンクホークス','Hawks':'福岡ソフトバンクホークス',
+  'Rakuten Eagles':'東北楽天ゴールデンイーグルス','Tohoku Rakuten Golden Eagles':'東北楽天ゴールデンイーグルス','Eagles':'東北楽天ゴールデンイーグルス',
+  'Lotte Marines':'千葉ロッテマリーンズ','Chiba Lotte Marines':'千葉ロッテマリーンズ','Marines':'千葉ロッテマリーンズ',
+  'Seibu Lions':'埼玉西武ライオンズ','Saitama Seibu Lions':'埼玉西武ライオンズ','Lions':'埼玉西武ライオンズ',
+  'Nippon Ham Fighters':'北海道日本ハムファイターズ','Hokkaido Nippon-Ham Fighters':'北海道日本ハムファイターズ','Fighters':'北海道日本ハムファイターズ',
+  'Orix Buffaloes':'オリックス・バファローズ','Buffaloes':'オリックス・バファローズ',
+};
+const TSDB_VENUE_MAP={
+  'Jingu Stadium':'明治神宮野球場','Meiji Jingu Stadium':'明治神宮野球場',
+  'Tokyo Dome':'東京ドーム',
+  'Yokohama Stadium':'横浜スタジアム',
+  'Belluna Dome':'ベルーナドーム','MetLife Dome':'ベルーナドーム',
+  'ZOZO Marine Stadium':'ZOZOマリンスタジアム','QVC Marine Field':'ZOZOマリンスタジアム',
+  'Nagoya Dome':'バンテリンドームナゴヤ','Vantelin Dome':'バンテリンドームナゴヤ',
+  'Koshien Stadium':'甲子園球場','Hanshin Koshien Stadium':'甲子園球場',
+  'Kyocera Dome Osaka':'京セラドーム大阪',
+  'Mazda Zoom-Zoom Stadium':'マツダスタジアム','Mazda Stadium':'マツダスタジアム',
+  'Fukuoka Dome':'みずほPayPayドーム福岡','PayPay Dome':'みずほPayPayドーム福岡','Mizuho PayPay Dome':'みずほPayPayドーム福岡',
+  'Rakuten Mobile Park':'楽天モバイルパーク宮城','Miyagi Baseball Stadium':'楽天モバイルパーク宮城',
+  'ES CON FIELD HOKKAIDO':'エスコンフィールドHOKKAIDO','Hokkaido Ballpark':'エスコンフィールドHOKKAIDO',
+};
+function tsdbTeamToJa(en){
+  if(!en)return'';
+  if(TSDB_TEAM_MAP[en])return TSDB_TEAM_MAP[en];
+  // partial match
+  for(const[k,v]of Object.entries(TSDB_TEAM_MAP)){if(en.includes(k))return v;}
+  return en;
 }
-
-async function fetchSpaiaGames(date){
-  const d=new Date(date+'T00:00:00');
-  const gameDate=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  const {json,via}=await fetchWithProxy(`https://spaia.jp/baseball/npb/api/games_info_by_date?gameDate=${gameDate}`);
-  return{gameDate,data:json,via};
+function tsdbVenueToJa(en){
+  if(!en)return'';
+  if(TSDB_VENUE_MAP[en])return TSDB_VENUE_MAP[en];
+  for(const[k,v]of Object.entries(TSDB_VENUE_MAP)){if(en.includes(k)||k.includes(en))return v;}
+  return'';
 }
-
-async function fetchSpaiaGameDetail(gameId,matchday,homeTeamId,visitorTeamId,gameKindId){
-  const gid=String(gameId);
-  const teamIds=JSON.stringify([String(homeTeamId),String(visitorTeamId)]);
-  const [overview,members,homers,pitchers,live,batters]=await Promise.allSettled([
-    fetchWithProxy(`https://spaia.jp/baseball/npb/api/game_over_view?gameId=${gid}`),
-    fetchWithProxy(`https://spaia.jp/baseball/npb/api/starting_members_for_flash?gameId=${gid}`),
-    fetchWithProxy(`https://spaia.jp/baseball/npb/api/flash_homerun?gameId=${gid}`),
-    fetchWithProxy(`https://spaia.jp/baseball/npb/api/both_pitcher_game_stats?gameId=${gid}&matchday=${matchday}&teamIds=${encodeURIComponent(teamIds)}&gameKindId=${gameKindId||1}`),
-    fetchWithProxy(`https://spaia.jp/baseball/npb/api/live_games?GameID=${gid}`),
-    fetchWithProxy(`https://spaia.jp/baseball/npb/api/both_batter_stats?gameId=${gid}&matchday=${matchday}&teamIds=${encodeURIComponent(teamIds)}&gameKindId=${gameKindId||1}`),
-  ]);
-  return{
-    overview: overview.status==='fulfilled'?(overview.value.json[0]||null):null,
-    members:  members.status==='fulfilled'?members.value.json:[],
-    homers:   homers.status==='fulfilled'?homers.value.json:[],
-    pitchers: pitchers.status==='fulfilled'?pitchers.value.json:[],
-    live:     live.status==='fulfilled'?(live.value.json[0]||null):null,
-    batters:  batters.status==='fulfilled'?batters.value.json:[],
-  };
+async function fetchNPBGames(date){
+  const url=`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${date}&l=4591`;
+  const r=await fetch(url);
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  const d=await r.json();
+  return d.events||[];
 }
-
-/* winLoseSaveHoldFlag: "1"=勝 "2"=負 "3"=S "4"=H */
-function pitcherFlagLabel(flag){
-  if(flag==='1')return{label:'勝',color:'var(--green)',bg:'#eaf5eb'};
-  if(flag==='2')return{label:'負',color:'var(--crimson)',bg:'#fdf0ef'};
-  if(flag==='3')return{label:'S',color:'#1B6CA8',bg:'#e8f0fb'};
-  if(flag==='4')return{label:'H',color:'#856000',bg:'#fff8e1'};
-  return null;
-}
-function formatIP(ip,ip3){return ip3?`${ip}.${ip3}`:`${ip||0}`;}
-
-const POSITION_MAP={'1':'投','2':'捕','3':'内','4':'外'};
 
 /* ---- Image compress util ---- */
 function compressImage(file,maxW=1200,quality=0.75){
@@ -828,73 +830,57 @@ function AddForm({initial,onSave,onCancel}){
   const[ftab,setFtab]=useState('basic');
   const[foodName,setFoodName]=useState('');
   const[foodPrice,setFoodPrice]=useState('');
+  const[foodQty,setFoodQty]=useState('1');
   const[fetchState,setFetchState]=useState('idle');
   const[fetchGames,setFetchGames]=useState([]);
   const[fetchError,setFetchError]=useState('');
-  const[fetchVia,setFetchVia]=useState('');
-  const[selectedGame,setSelectedGame]=useState(null); // the chosen game object
-  const[detail,setDetail]=useState(initial?.spaiaDetail||null);   // fetchSpaiaGameDetail result
-  const[detailLoading,setDetailLoading]=useState(false);
-  const[detailError,setDetailError]=useState('');
+  const[manualDetail,setManualDetail]=useState(initial?.manualDetail||{winP:'',loseP:'',saveP:'',gwP:'',homers:'',homeLineup:'',awayLineup:''});
   const[photoLoading,setPhotoLoading]=useState(false);
   const[menuCat,setMenuCat]=useState(JINGU_MENU[0].shop);
   const[menuArea,setMenuArea]=useState('内野');
   const[menuOpen,setMenuOpen]=useState(false);
   const fileRef=useRef();
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const setMD=(k,v)=>setManualDetail(d=>({...d,[k]:v}));
 
   const canFetch=form.date;
 
   const handleFetch=async()=>{
-    setFetchState('loading');setFetchGames([]);setFetchError('');setFetchVia('');
+    setFetchState('loading');setFetchGames([]);setFetchError('');
     try{
-      const{data,via}=await fetchSpaiaGames(form.date);
-      const list=Array.isArray(data)?data:(data.games||data.data||data.gameList||data.results||[]);
-      if(!list.length){setFetchState('notfound');return;}
-      setFetchGames(list);setFetchState('done');setFetchVia(via);
+      const events=await fetchNPBGames(form.date);
+      if(!events.length){setFetchState('notfound');return;}
+      setFetchGames(events);setFetchState('done');
     }catch(e){
       setFetchState('error');
-      setFetchError(e.message||'全ルート失敗');
+      setFetchError(e.message||'取得失敗');
     }
   };
 
   const applyGame=(g)=>{
-    const home=g.homeTeamName||'';
-    const away=g.visitorTeamName||'';
-    const hs=g.homeTeamTotalRuns!=null?String(g.homeTeamTotalRuns):'';
-    const as=g.visitorTeamTotalRuns!=null?String(g.visitorTeamTotalRuns):'';
-    setForm(f=>({...f,homeTeam:home||f.homeTeam,awayTeam:away||f.awayTeam,homeScore:hs||f.homeScore,awayScore:as||f.awayScore}));
+    const home=tsdbTeamToJa(g.strHomeTeam)||'';
+    const away=tsdbTeamToJa(g.strAwayTeam)||'';
+    const hs=g.intHomeScore!=null?String(g.intHomeScore):'';
+    const as=g.intAwayScore!=null?String(g.intAwayScore):'';
+    const venue=tsdbVenueToJa(g.strVenue||'');
+    const stMatch=venue?STADIUMS.find(s=>s===venue)||null:null;
+    setForm(f=>({
+      ...f,
+      homeTeam:home||f.homeTeam,
+      awayTeam:away||f.awayTeam,
+      homeScore:hs!==''?hs:f.homeScore,
+      awayScore:as!==''?as:f.awayScore,
+      stadium:stMatch||f.stadium,
+    }));
     setFetchState('applied');
-    setSelectedGame(g);
-    setDetail(null);
-    setDetailError('');
-    // auto-fetch detail
-    loadDetail(g);
-  };
-
-  const loadDetail=async(g)=>{
-    setDetailLoading(true);setDetailError('');
-    try{
-      const d=new Date(form.date+'T00:00:00');
-      const matchday=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const kindId=Number(g.gameKindId||g.gameTypeId||g.GameTypeID||1);
-      const result=await fetchSpaiaGameDetail(g.gameId||g.GameID,matchday,g.homeTeamId||g.H_Score_ID,g.visitorTeamId||g.V_Score_ID,kindId);
-      setDetail(result);
-      // 球場を自動反映
-      const stadium=result.overview?.stadiumName||result.live?.StadiumName||'';
-      if(stadium){
-        const stMatch=STADIUMS.find(s=>s.includes(stadium)||stadium.includes(s.slice(0,4)));
-        if(stMatch)setForm(f=>({...f,stadium:stMatch}));
-      }
-    }catch(e){setDetailError('詳細取得失敗: '+e.message);}
-    setDetailLoading(false);
   };
 
   const addFood=()=>{
     if(!foodName.trim())return;
     const icon=FOOD_ICONS[Math.floor(Math.random()*FOOD_ICONS.length)];
-    setFoods(fs=>[...fs,{id:genId(),name:foodName.trim(),price:foodPrice,emoji:icon}]);
-    setFoodName('');setFoodPrice('');
+    const qty=Math.max(1,parseInt(foodQty)||1);
+    setFoods(fs=>[...fs,{id:genId(),name:foodName.trim(),price:foodPrice,qty,emoji:icon}]);
+    setFoodName('');setFoodPrice('');setFoodQty('1');
   };
 
   // Fixed: sequential processing with canvas compression to prevent freeze
@@ -910,7 +896,7 @@ function AddForm({initial,onSave,onCancel}){
 
   const save=()=>{
     if(!form.homeTeam||!form.awayTeam||!form.stadium||!form.date){alert('日付・球場・ホーム・ビジターチームは必須です');return;}
-    onSave({...form,foods,photos,id:form.id||genId(),spaiaDetail:detail||undefined});
+    onSave({...form,foods,photos,id:form.id||genId(),manualDetail,spaiaDetail:initial?.spaiaDetail||undefined});
   };
   const tabs=[{key:'basic',label:'⚾ 試合情報'},{key:'food',label:'🍱 グルメ'},{key:'photo',label:'📷 写真'}];
   const spaiaDayUrl=form.date?`https://spaia.jp/baseball/npb/schedule?date=${form.date.replace(/-/g,'')}`:'https://spaia.jp/baseball/npb/schedule';
@@ -922,18 +908,16 @@ function AddForm({initial,onSave,onCancel}){
       </div>
       {ftab==='basic'&&<>
         <div className="section-title">試合情報</div>
-        <div className="form-grid">
-          <div className="form-group"><label className="form-label">日付 *</label><input type="date" value={form.date} onChange={e=>{set('date',e.target.value);setFetchState('idle');setFetchGames([]);}}/></div>
-          <div className="form-group"><label className="form-label">球場 *</label><select value={form.stadium} onChange={e=>set('stadium',e.target.value)}><option value="">選択してください</option>{STADIUMS.map(s=><option key={s}>{s}</option>)}</select></div>
-        </div>
+        {/* 日付 */}
+        <div className="form-group" style={{marginBottom:'10px'}}><label className="form-label">日付 *</label><input type="date" value={form.date} onChange={e=>{set('date',e.target.value);setFetchState('idle');setFetchGames([]);}}/></div>
 
-        {/* SPAIA FETCH PANEL */}
+        {/* 試合取得パネル */}
         {canFetch&&(
           <div style={{background:'linear-gradient(135deg,#1B2A4A,#253A60)',borderRadius:'12px',padding:'14px 16px',marginBottom:'14px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px'}}>
               <div>
-                <div style={{color:'var(--gold)',fontWeight:700,fontSize:'13px',marginBottom:'3px'}}>⚾ SPAIA から試合結果を取得</div>
-                <div style={{color:'rgba(255,255,255,0.5)',fontSize:'11px'}}>当日の全試合一覧を取得してフォームに反映します</div>
+                <div style={{color:'var(--gold)',fontWeight:700,fontSize:'13px',marginBottom:'3px'}}>⚾ NPB試合を自動取得（TheSportsDB）</div>
+                <div style={{color:'rgba(255,255,255,0.5)',fontSize:'11px'}}>当日の試合一覧を取得してフォームに反映します</div>
               </div>
               {fetchState!=='applied'&&(
                 <button onClick={handleFetch} disabled={fetchState==='loading'}
@@ -947,32 +931,27 @@ function AddForm({initial,onSave,onCancel}){
             {fetchState==='loading'&&(
               <div style={{marginTop:'10px',color:'rgba(255,255,255,0.6)',fontSize:'12px',display:'flex',alignItems:'center',gap:'8px'}}>
                 <span style={{display:'inline-block',animation:'spin 1s linear infinite',fontSize:'14px'}}>⟳</span>
-                SPAIA から試合情報を取得中...
+                試合情報を取得中...
               </div>
             )}
 
             {fetchState==='done'&&fetchGames.length>0&&(
               <div style={{marginTop:'12px'}}>
-                {fetchVia&&<div style={{color:'rgba(255,255,255,0.35)',fontSize:'10px',marginBottom:'7px'}}>取得元: {fetchVia}</div>}
                 <div style={{color:'rgba(255,255,255,0.55)',fontSize:'11px',marginBottom:'7px'}}>試合を選んでフォームに反映：</div>
                 {fetchGames.map((g,i)=>{
-                  const home=g.homeTeamName||'';
-                  const away=g.visitorTeamName||'';
-                  const hs=g.homeTeamTotalRuns;
-                  const as=g.visitorTeamTotalRuns;
-                  const hasScore=hs!=null&&as!=null&&g.gameStateId===4;
-                  const isFinished=g.gameStateId===4;
-                  const gameType=g.gameTypeName||'';
-                  const startTime=g.startTime?g.startTime.slice(0,2)+':'+g.startTime.slice(2):'';
+                  const home=tsdbTeamToJa(g.strHomeTeam);
+                  const away=tsdbTeamToJa(g.strAwayTeam);
+                  const hs=g.intHomeScore;
+                  const as=g.intAwayScore;
+                  const hasScore=hs!=null&&as!=null&&hs!==''&&as!=='';
+                  const time=g.strTime?g.strTime.slice(0,5):'';
+                  const venue=tsdbVenueToJa(g.strVenue||'');
                   return(
-                    <button key={g.gameId||i} onClick={()=>applyGame(g)}
+                    <button key={g.idEvent||i} onClick={()=>applyGame(g)}
                       style={{width:'100%',background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'9px',padding:'10px 12px',marginBottom:'7px',cursor:'pointer',transition:'background 0.15s',textAlign:'left'}}
                       onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.14)'}
                       onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.07)'}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'5px'}}>
-                        <span style={{fontSize:'10px',color:'rgba(255,255,255,0.4)',letterSpacing:'0.5px'}}>{gameType}{startTime?` · ${startTime}`:''}</span>
-                        <span style={{fontSize:'10px',color:isFinished?'rgba(255,255,255,0.4)':'#7ed67f'}}>{g.gameStateName||''}</span>
-                      </div>
+                      {(time||venue)&&<div style={{fontSize:'10px',color:'rgba(255,255,255,0.35)',marginBottom:'4px'}}>{venue||''}{time?` ${time}開始`:''}</div>}
                       <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
                         <span style={{color:'white',fontWeight:700,fontSize:'13px',flex:1}}>{home}</span>
                         <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:'22px',color:'var(--gold)',letterSpacing:'2px',flexShrink:0}}>
@@ -986,137 +965,33 @@ function AddForm({initial,onSave,onCancel}){
               </div>
             )}
 
-            {fetchState==='applied'&&selectedGame&&(
-              <div style={{marginTop:'10px'}}>
-                <div style={{color:'#7ed67f',fontSize:'12px',fontWeight:700,marginBottom:'8px'}}>✓ フォームに反映済み</div>
-
-                {detailLoading&&(
-                  <div style={{color:'rgba(255,255,255,0.55)',fontSize:'12px',display:'flex',alignItems:'center',gap:'8px'}}>
-                    <span style={{display:'inline-block',animation:'spin 1s linear infinite'}}>⟳</span> 詳細データを取得中...
-                  </div>
-                )}
-
-                {detailError&&<div style={{color:'#f08080',fontSize:'11px'}}>{detailError}</div>}
-
-                {detail&&(()=>{
-                  const ov=detail.overview;
-                  // Starters
-                  const homeStarters=detail.members.filter(m=>m.teamId===String(selectedGame.homeTeamId)&&m.startBatNo!=null).sort((a,b)=>a.startBatNo-b.startBatNo);
-                  const awayStarters=detail.members.filter(m=>m.teamId===String(selectedGame.visitorTeamId)&&m.startBatNo!=null).sort((a,b)=>a.startBatNo-b.startBatNo);
-                  // Pitchers sorted by no
-                  const homePitchers=detail.pitchers.filter(p=>p.teamId===String(selectedGame.homeTeamId)).sort((a,b)=>a.no-b.no);
-                  const awayPitchers=detail.pitchers.filter(p=>p.teamId===String(selectedGame.visitorTeamId)).sort((a,b)=>a.no-b.no);
-                  // HRs
-                  const parseHR=arr=>arr.flatMap(item=>{
-                    try{const info=JSON.parse(item.homerunInfo||'[]');return info.map(h=>({...h,teamId:item.teamId}));}catch{return[];}
-                  });
-                  const hrs=parseHR(detail.homers);
-
-                  return(
-                    <div style={{marginTop:'4px'}}>
-                      {/* Stadium & apply button */}
-                      {ov&&(
-                        <div style={{background:'rgba(255,255,255,0.07)',borderRadius:'8px',padding:'10px 12px',marginBottom:'8px'}}>
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'6px'}}>
-                            <span style={{color:'var(--gold)',fontSize:'12px',fontWeight:700}}>📍 {ov.stadiumName||'球場不明'} <span style={{color:'#7ed67f',fontSize:'10px'}}>✓ フォームに反映済み</span></span>
-                          </div>
-                          {ov.review&&<p style={{color:'rgba(255,255,255,0.6)',fontSize:'11px',lineHeight:1.7}}>{ov.review}</p>}
-                        </div>
-                      )}
-
-                      {/* Pitchers */}
-                      {(homePitchers.length>0||awayPitchers.length>0)&&(
-                        <div style={{background:'rgba(255,255,255,0.05)',borderRadius:'8px',padding:'10px 12px',marginBottom:'8px'}}>
-                          <div style={{color:'rgba(255,255,255,0.5)',fontSize:'10px',letterSpacing:'1px',marginBottom:'8px'}}>投手成績</div>
-                          {[{label:selectedGame.homeTeamName,pitchers:homePitchers},{label:selectedGame.visitorTeamName,pitchers:awayPitchers}].map(({label,pitchers})=>(
-                            pitchers.length===0?null:
-                            <div key={label} style={{marginBottom:'8px'}}>
-                              <div style={{color:'rgba(255,255,255,0.45)',fontSize:'10px',marginBottom:'5px'}}>{label}</div>
-                              {pitchers.map(p=>{
-                                const fl=pitcherFlagLabel(p.winLoseSaveHoldFlag);
-                                return(
-                                  <div key={p.playerId} style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'3px',fontSize:'12px'}}>
-                                    {fl
-                                      ? <span style={{background:fl.bg,color:fl.color,borderRadius:'4px',padding:'1px 6px',fontWeight:700,fontSize:'11px',minWidth:'20px',textAlign:'center'}}>{fl.label}</span>
-                                      : <span style={{minWidth:'20px'}}/>
-                                    }
-                                    <span style={{color:'white',fontWeight:500}}>{p.playerName.replace(/　/,' ')}</span>
-                                    <span style={{color:'rgba(255,255,255,0.4)',fontSize:'11px'}}>#{p.number}</span>
-                                    <span style={{color:'rgba(255,255,255,0.5)',fontSize:'11px',marginLeft:'auto'}}>{formatIP(p.ip,p.ip3)}回 {p.h}安{p.so}三 {p.r}失</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Home Runs */}
-                      {hrs.length>0&&(
-                        <div style={{background:'rgba(255,255,255,0.05)',borderRadius:'8px',padding:'10px 12px',marginBottom:'8px'}}>
-                          <div style={{color:'rgba(255,255,255,0.5)',fontSize:'10px',letterSpacing:'1px',marginBottom:'6px'}}>本塁打</div>
-                          {hrs.map((h,i)=>{
-                            const tname=String(h.teamId)===String(selectedGame.homeTeamId)?selectedGame.homeTeamName:selectedGame.visitorTeamName;
-                            return(
-                              <div key={i} style={{color:'white',fontSize:'12px',marginBottom:'3px',display:'flex',gap:'8px',alignItems:'center'}}>
-                                <span style={{fontSize:'16px'}}>💣</span>
-                                <span style={{fontWeight:700}}>{h.name_s}</span>
-                                <span style={{color:'rgba(255,255,255,0.4)',fontSize:'11px'}}>#{h.num} {tname}</span>
-                                <span style={{color:'var(--gold)',fontSize:'11px',marginLeft:'auto'}}>{h.inn}回 {h.runs}打点</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Starters */}
-                      {(homeStarters.length>0||awayStarters.length>0)&&(
-                        <div style={{background:'rgba(255,255,255,0.05)',borderRadius:'8px',padding:'10px 12px'}}>
-                          <div style={{color:'rgba(255,255,255,0.5)',fontSize:'10px',letterSpacing:'1px',marginBottom:'8px'}}>スタメン</div>
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}}>
-                            {[{label:selectedGame.homeTeamName,starters:homeStarters},{label:selectedGame.visitorTeamName,starters:awayStarters}].map(({label,starters})=>(
-                              <div key={label}>
-                                <div style={{color:'rgba(255,255,255,0.4)',fontSize:'10px',marginBottom:'5px'}}>{label}</div>
-                                {starters.map(m=>{
-                                  const isPitcher=String(m.startPosition)==='1';
-                                  return(
-                                    <div key={m.playerId} style={{display:'flex',gap:'5px',alignItems:'center',marginBottom:'2px',fontSize:'11px'}}>
-                                      <span style={{color:'rgba(255,255,255,0.55)',minWidth:'14px',textAlign:'center',fontWeight:700}}>{isPitcher?'投':m.startPosition}</span>
-                                      <span style={{color:'white'}}>{m.PlayerNameS||m.playerName?.split('　')[0]}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+            {fetchState==='notfound'&&(()=>{
+              const d=new Date(form.date);
+              const m=d.getMonth()+1,day=d.getDate();
+              let reason='';
+              if((m===11)||(m===12)||(m===1)||(m===2))reason='⛄ オフシーズン期間（11〜2月）はNPB試合がありません。';
+              else if((m===2)||(m===3&&day<27))reason='🌸 オープン戦（春季練習試合）期間はデータ非対応です。レギュラーシーズンは3月下旬開幕です。';
+              else if(m===10&&day>28)reason='🏆 日本シリーズ・CSは別途手動で入力してください。';
+              return(
+              <div style={{marginTop:'10px',color:'rgba(255,255,255,0.6)',fontSize:'12px',lineHeight:'1.6'}}>
+                {reason||'この日のNPB試合データが見つかりませんでした。'}
+                <div style={{color:'rgba(255,255,255,0.38)',marginTop:'4px'}}>↓ 下のフォームから手動で入力できます</div>
               </div>
-            )}
+              );
+            })()}
 
-            {fetchState==='notfound'&&(
-              <div style={{marginTop:'10px',color:'rgba(255,255,255,0.5)',fontSize:'12px'}}>
-                この日の試合データが見つかりませんでした。
-                <a href={spaiaDayUrl} target="_blank" rel="noreferrer" style={{color:'var(--gold)',marginLeft:'6px'}}>SPAIAで確認 ↗</a>
-              </div>
-            )}
-
-            {(fetchState==='error'||fetchState==='cors')&&(
+            {fetchState==='error'&&(
               <div style={{marginTop:'10px'}}>
-                <div style={{color:'#ffd080',fontSize:'12px',marginBottom:'6px'}}>⚠️ 全ルートで取得できませんでした</div>
-                <div style={{color:'rgba(255,255,255,0.35)',fontSize:'10px',marginBottom:'8px',lineHeight:1.7,wordBreak:'break-all'}}>{fetchError}</div>
-                <a href={spaiaDayUrl} target="_blank" rel="noreferrer"
-                  style={{display:'inline-flex',alignItems:'center',gap:'5px',padding:'7px 14px',background:'var(--gold)',color:'var(--navy)',borderRadius:'7px',fontSize:'12px',fontWeight:700,textDecoration:'none'}}>
-                  SPAIA {form.date} の試合一覧を開く ↗
-                </a>
+                <div style={{color:'#ffd080',fontSize:'12px',marginBottom:'4px'}}>⚠️ 取得に失敗しました</div>
+                <div style={{color:'rgba(255,255,255,0.35)',fontSize:'10px',wordBreak:'break-all'}}>{fetchError}</div>
               </div>
             )}
           </div>
         )}
         <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+
+        {/* 球場 */}
+        <div className="form-group" style={{marginBottom:'10px'}}><label className="form-label">球場 * <span style={{fontWeight:400,fontSize:'11px',color:'var(--text-muted)'}}>（自動取得で反映されます）</span></label><select value={form.stadium} onChange={e=>set('stadium',e.target.value)}><option value="">選択してください</option>{STADIUMS.map(s=><option key={s}>{s}</option>)}</select></div>
 
         <div className="form-grid">
           <div className="form-group"><label className="form-label">ホームチーム *</label><select value={form.homeTeam} onChange={e=>set('homeTeam',e.target.value)}><option value="">選択してください</option>{TEAMS.map(t=><option key={t}>{t}</option>)}</select></div>
@@ -1126,7 +1001,25 @@ function AddForm({initial,onSave,onCancel}){
           <div className="form-group"><label className="form-label">天気</label><select value={form.weather} onChange={e=>set('weather',e.target.value)}><option value="">選択してください</option>{WEATHER.map(w=><option key={w}>{w}</option>)}</select></div>
           <div className="form-group"><label className="form-label">座席</label><input type="text" value={form.seat} onChange={e=>set('seat',e.target.value)} placeholder="例: 1塁側内野"/></div>
         </div>
-        <div className="form-group"><label className="form-label">観戦メモ・感想</label><textarea rows="5" value={form.memo} onChange={e=>set('memo',e.target.value)} placeholder="今日の試合の印象的なシーン、雰囲気など..." style={{resize:'vertical'}}/></div>
+        <div className="form-group"><label className="form-label">観戦メモ・感想</label><textarea rows="4" value={form.memo} onChange={e=>set('memo',e.target.value)} placeholder="今日の試合の印象的なシーン、雰囲気など..." style={{resize:'vertical'}}/></div>
+
+        {/* 詳細記録（任意） */}
+        <details style={{marginTop:'6px'}}>
+          <summary style={{cursor:'pointer',fontSize:'13px',fontWeight:700,color:'var(--navy)',padding:'8px 0',userSelect:'none'}}>📋 詳細記録（任意）— 勝利投手・スタメンなど</summary>
+          <div style={{paddingTop:'10px'}}>
+            <div className="form-grid">
+              <div className="form-group"><label className="form-label">勝利投手</label><input type="text" value={manualDetail.winP} onChange={e=>setMD('winP',e.target.value)} placeholder="例: 小澤怜史"/></div>
+              <div className="form-group"><label className="form-label">敗戦投手</label><input type="text" value={manualDetail.loseP} onChange={e=>setMD('loseP',e.target.value)} placeholder="例: 山本由伸"/></div>
+              <div className="form-group"><label className="form-label">セーブ投手</label><input type="text" value={manualDetail.saveP} onChange={e=>setMD('saveP',e.target.value)} placeholder="例: 石山泰稚"/></div>
+              <div className="form-group"><label className="form-label">GW打点者</label><input type="text" value={manualDetail.gwP} onChange={e=>setMD('gwP',e.target.value)} placeholder="例: 山田哲人"/></div>
+            </div>
+            <div className="form-group"><label className="form-label">本塁打</label><input type="text" value={manualDetail.homers} onChange={e=>setMD('homers',e.target.value)} placeholder="例: 山田哲人2号ソロ、サンタナ5号ツーラン"/></div>
+            <div className="form-grid">
+              <div className="form-group"><label className="form-label">ホームスタメン</label><textarea rows="4" value={manualDetail.homeLineup} onChange={e=>setMD('homeLineup',e.target.value)} placeholder={"1 [中] 塩見\n2 [遊] 長岡\n3 [一] 山田\n4 [左] サンタナ..."} style={{resize:'vertical',fontFamily:'monospace',fontSize:'12px'}}/></div>
+              <div className="form-group"><label className="form-label">ビジタースタメン</label><textarea rows="4" value={manualDetail.awayLineup} onChange={e=>setMD('awayLineup',e.target.value)} placeholder={"1 [中] 岡林\n2 [二] 田中幹\n..."} style={{resize:'vertical',fontFamily:'monospace',fontSize:'12px'}}/></div>
+            </div>
+          </div>
+        </details>
       </>}
       {ftab==='food'&&<>
         <div className="section-title">球場グルメ記録</div>
@@ -1184,16 +1077,16 @@ function AddForm({initial,onSave,onCancel}){
         {foods.length===0&&<p style={{color:'var(--text-muted)',fontSize:'14px',textAlign:'center',padding:'16px 0'}}>まだグルメが登録されていません</p>}
         {foods.map(f=>(
           <div key={f.id} className="food-item">
-            
-            <div className="food-name">{f.name}</div>
-            {f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}
+            <div className="food-name">{f.name}{(f.qty||1)>1&&<span style={{marginLeft:'5px',fontSize:'11px',color:'var(--text-muted)',fontWeight:400}}>×{f.qty}</span>}</div>
+            {f.price&&<div className="food-price">¥{(parseInt(f.price)*(f.qty||1)).toLocaleString()}</div>}
             <button className="food-remove" onClick={()=>setFoods(fs=>fs.filter(x=>x.id!==f.id))}>×</button>
           </div>
         ))}
-        {foods.length>0&&(()=>{const t=foods.reduce((s,f)=>s+(parseInt(f.price)||0),0);return t>0?<div className="food-total">合計 ¥{t.toLocaleString()}</div>:null;})()}
+        {foods.length>0&&(()=>{const t=foods.reduce((s,f)=>s+(parseInt(f.price)||0)*(f.qty||1),0);return t>0?<div className="food-total">合計 ¥{t.toLocaleString()}</div>:null;})()}
         <div className="food-add-row">
           <input type="text" value={foodName} onChange={e=>setFoodName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addFood()} placeholder="メニュー名"/>
-          <input type="number" value={foodPrice} onChange={e=>setFoodPrice(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addFood()} placeholder="値段" style={{width:'100px',flex:'none'}}/>
+          <input type="number" value={foodPrice} onChange={e=>setFoodPrice(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addFood()} placeholder="値段" style={{width:'80px',flex:'none'}}/>
+          <input type="number" value={foodQty} onChange={e=>setFoodQty(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addFood()} placeholder="個数" min="1" max="99" style={{width:'58px',flex:'none'}}/>
           <button className="btn-primary" onClick={addFood} style={{flexShrink:0,padding:'10px 14px'}}>追加</button>
         </div>
       </>}
@@ -1227,7 +1120,7 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
   const hasScore=game.homeScore!==''&&game.awayScore!=='';
   const homeWin=hasScore&&h>a,awayWin=hasScore&&a>h;
   const result=getResult(game,myTeam);
-  const foodTotal=(game.foods||[]).reduce((s,f)=>s+(parseInt(f.price)||0),0);
+  const foodTotal=(game.foods||[]).reduce((s,f)=>s+(parseInt(f.price)||0)*(f.qty||1),0);
   return(
     <div>
       <button className="back-btn" onClick={onBack}>← 一覧へ戻る</button>
@@ -1251,7 +1144,43 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
 
       {game.memo&&<div className="card"><div className="section-title">観戦メモ</div><p style={{fontSize:'15px',lineHeight:'1.9',whiteSpace:'pre-wrap'}}>{game.memo}</p></div>}
 
-      {/* SPAIA 詳細データ */}
+      {/* 手入力詳細データ */}
+      {game.manualDetail&&(()=>{
+        const md=game.manualDetail;
+        const hasPitcher=md.winP||md.loseP||md.saveP||md.gwP;
+        const hasDetail=hasPitcher||md.homers||md.homeLineup||md.awayLineup;
+        if(!hasDetail)return null;
+        return(
+          <>
+            {hasPitcher&&(
+              <div className="card">
+                <div className="section-title">📊 試合結果</div>
+                <div style={{display:'flex',flexDirection:'column',gap:'7px'}}>
+                  {md.winP&&<div style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{background:'#eaf5eb',color:'var(--green,#2e7d32)',borderRadius:'4px',padding:'1px 8px',fontSize:'12px',fontWeight:700}}>勝</span><span style={{fontSize:'14px',fontWeight:600}}>{md.winP}</span></div>}
+                  {md.loseP&&<div style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{background:'#fdf0ef',color:'var(--crimson)',borderRadius:'4px',padding:'1px 8px',fontSize:'12px',fontWeight:700}}>敗</span><span style={{fontSize:'14px',fontWeight:600}}>{md.loseP}</span></div>}
+                  {md.saveP&&<div style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{background:'#e8f0fb',color:'#1B6CA8',borderRadius:'4px',padding:'1px 8px',fontSize:'12px',fontWeight:700}}>S</span><span style={{fontSize:'14px',fontWeight:600}}>{md.saveP}</span></div>}
+                  {md.gwP&&<div style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{background:'#fff8e1',color:'#856000',borderRadius:'4px',padding:'1px 8px',fontSize:'12px',fontWeight:700}}>GW打点</span><span style={{fontSize:'14px',fontWeight:600}}>{md.gwP}</span></div>}
+                </div>
+              </div>
+            )}
+            {md.homers&&(
+              <div className="card">
+                <div className="section-title">💣 本塁打</div>
+                <p style={{fontSize:'14px',lineHeight:1.8}}>{md.homers}</p>
+              </div>
+            )}
+            {(md.homeLineup||md.awayLineup)&&(
+              <div className="card">
+                <div className="section-title">📋 スタメン</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+                  {md.homeLineup&&<div><div style={{fontSize:'11px',color:'var(--text-muted)',fontWeight:700,marginBottom:'6px'}}>{game.homeTeam}</div><pre style={{fontSize:'12px',margin:0,lineHeight:1.8,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{md.homeLineup}</pre></div>}
+                  {md.awayLineup&&<div><div style={{fontSize:'11px',color:'var(--text-muted)',fontWeight:700,marginBottom:'6px'}}>{game.awayTeam}</div><pre style={{fontSize:'12px',margin:0,lineHeight:1.8,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{md.awayLineup}</pre></div>}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
       {game.spaiaDetail&&(()=>{
         const sd=game.spaiaDetail;
         const lv=sd.live||null;
@@ -1471,7 +1400,7 @@ function GameDetail({game,myTeam,onBack,onEdit,onDelete}){
       {(game.foods||[]).length>0&&(
         <div className="card">
           <div className="section-title">球場グルメ ({game.foods.length}品)</div>
-          {game.foods.map(f=><div key={f.id} className="food-item"><div className="food-name">{f.name}</div>{f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}</div>)}
+          {game.foods.map(f=><div key={f.id} className="food-item"><div className="food-name">{f.name}{(f.qty||1)>1&&<span style={{marginLeft:'5px',fontSize:'11px',color:'var(--text-muted)',fontWeight:400}}>×{f.qty}</span>}</div>{f.price&&<div className="food-price">¥{(parseInt(f.price)*(f.qty||1)).toLocaleString()}</div>}</div>)}
           {foodTotal>0&&<div className="food-total">合計 ¥{foodTotal.toLocaleString()}</div>}
         </div>
       )}
@@ -1507,7 +1436,7 @@ const TEAM_MASCOT={
 function StatsView({games,myTeam}){
   if(games.length===0)return<div className="empty-state"><div className="empty-icon">📊</div><div className="empty-title">まだ記録がありません</div><div className="empty-desc">試合を記録すると統計が表示されます</div></div>;
   const totalGames=games.length,totalPhotos=games.reduce((s,g)=>s+(g.photos||[]).length,0);
-  const totalFood=games.reduce((s,g)=>s+(g.foods||[]).reduce((ss,f)=>ss+(parseInt(f.price)||0),0),0);
+  const totalFood=games.reduce((s,g)=>s+(g.foods||[]).reduce((ss,f)=>ss+(parseInt(f.price)||0)*(f.qty||1),0),0);
   const stadiumSet=new Set(games.map(g=>g.stadium).filter(Boolean));
   const teamCount={};games.forEach(g=>{if(g.homeTeam)teamCount[g.homeTeam]=(teamCount[g.homeTeam]||0)+1;if(g.awayTeam)teamCount[g.awayTeam]=(teamCount[g.awayTeam]||0)+1;});
   const topTeams=Object.entries(teamCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -1748,7 +1677,7 @@ function AllFoodView({games}){
               {f.price&&<div className="food-price">¥{parseInt(f.price).toLocaleString()}</div>}
             </div>
           ))}
-          {(()=>{const t=foods.reduce((s,f)=>s+(parseInt(f.price)||0),0);return t>0?<div className="food-total">合計 ¥{t.toLocaleString()}</div>:null;})()}
+          {(()=>{const t=foods.reduce((s,f)=>s+(parseInt(f.price)||0)*(f.qty||1),0);return t>0?<div className="food-total">合計 ¥{t.toLocaleString()}</div>:null;})()}
         </div>
       ))}
     </div>
