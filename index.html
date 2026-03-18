@@ -369,6 +369,8 @@ function Highlight({text,q}){
 function gameMatchesQuery(g,q){
   if(!q)return true;
   const lq=q.toLowerCase();
+  const md=g.manualDetail||{};
+  const scoreStr=g.homeScore!=null&&g.awayScore!=null?`${g.homeScore}-${g.awayScore} ${g.homeScore}対${g.awayScore}`:'';
   return(
     (g.homeTeam||'').toLowerCase().includes(lq)||
     (g.awayTeam||'').toLowerCase().includes(lq)||
@@ -376,7 +378,15 @@ function gameMatchesQuery(g,q){
     (g.memo||'').toLowerCase().includes(lq)||
     (g.seat||'').toLowerCase().includes(lq)||
     (g.date||'').includes(lq)||
-    (g.foods||[]).some(f=>(f.name||'').toLowerCase().includes(lq))
+    scoreStr.includes(lq)||
+    (g.foods||[]).some(f=>(f.name||'').toLowerCase().includes(lq))||
+    (md.winP||'').toLowerCase().includes(lq)||
+    (md.loseP||'').toLowerCase().includes(lq)||
+    (md.saveP||'').toLowerCase().includes(lq)||
+    (md.gwP||'').toLowerCase().includes(lq)||
+    (md.homers||'').toLowerCase().includes(lq)||
+    (md.homeLineup||'').toLowerCase().includes(lq)||
+    (md.awayLineup||'').toLowerCase().includes(lq)
   );
 }
 
