@@ -704,12 +704,14 @@ const JINGU_MENU=[
     {name:'まぐろ各種',price:''},
   ]},
   {shop:'🩷 Pink dot.（外野G14）',area:'外野',items:[
+    {name:'チュリトス2種（1本）',price:550},
+    {name:'抹茶ミルクチュリトス（つば九郎）',price:650},
+    {name:'チョコバナナチュリトス（長岡秀樹）',price:650},
+    {name:'ナガタピオカロイヤルミルクティ（長岡秀樹）',price:850},
+    {name:'LOVE×２アサイーボウル（内山壮真）',price:''},
     {name:'タピオカミルクティー',price:450},
     {name:'黒糖タピオカミルクコーヒー',price:450},
     {name:'武岡龍世の黒糖ロイヤルミルクティー',price:800},
-    {name:'長岡秀樹のナガタピオカロイヤルミルクティー',price:800},
-    {name:'内山壮真のブルーゼリーフロートドリンク',price:''},
-    {name:'チュリトス',price:500},
   ]},
   {shop:'🍕 ピザーラエクスプレス（外野G14）',area:'外野',items:[
     {name:'テリヤキチキンピザ（1枚）',price:550},
@@ -734,7 +736,8 @@ const JINGU_MENU=[
     {name:'おやじんレモ',price:''},
     {name:'じんレモ メガサイズ',price:''},
     {name:'じんレモ ノンアルコール',price:''},
-    {name:'フレーバーじんレモ各種',price:''},
+    {name:'じんレモ 各種フレーバー',price:''},
+    {name:'おつまみ各種',price:''},
   ]},
   {shop:'🍤 天ぷらとワイン大塩（外野G20）',area:'外野',items:[
     {name:'天ぷら各種',price:''},
@@ -753,24 +756,32 @@ const JINGU_MENU=[
     {name:'みやざきご当地おつまみセット',price:1500},
     {name:'からあげ',price:''},
   ]},
-  {shop:'🐙 築地銀だこ TOKYO STADIUM（外野G14）',area:'外野',items:[
-    {name:'贅沢チーズ明太子たこ焼（長岡秀樹）',price:''},
+  {shop:'🐙 築地銀だこ TOKYO STADIUM（外野G1）',area:'外野',items:[
+    {name:'バリウマ高菜明太たこ焼 ゆずを添えて（古賀優大）',price:880},
+    {name:'ヨシム・ラージャン２nd ポテトサラダのせ（吉村貢司郎）',price:880},
     {name:'丸山和郁のタレかつ丼',price:''},
     {name:'赤羽由紘のピーチハイボール',price:''},
     {name:'赤羽由紘のカルピスピーチ',price:''},
     {name:'高橋奎二のパフェ',price:''},
+    {name:'長岡秀樹のチーズ明太子たこ焼',price:''},
   ]},
-  {shop:'🍖 ルウ・ジャパン（外野）',area:'外野',items:[
+  {shop:'🍖 ルウ・ジャパン（外野G18）',area:'外野',items:[
     {name:'石川雅規の秋田郷土料理うどん',price:''},
-    {name:'比内地鶏のつゆ使用 冷やしうどん',price:''},
-    {name:'松本健吾の讃岐うどんイメージ うどん',price:''},
+    {name:'比内地鶏のつゆ 冷やしうどん',price:''},
+    {name:'松本健吾の讃岐うどんイメージうどん',price:''},
     {name:'肉肉しい豚肉の塩だれ丼',price:''},
     {name:'奥川恭伸の巨峰サワー',price:''},
+    {name:'ウインナー盛り',price:''},
   ]},
-  {shop:'🐟 築地場外市場 神宮球場店（外野G14）',area:'外野',items:[
-    {name:'そうまぐろポキ丼（内山壮真）',price:1500},
-    {name:'つば九郎カップ 絶品玉子焼き串',price:700},
-    {name:'まぐろ刺身',price:''},
+  {shop:'🦪 だんまや水産（外野G16）',area:'外野',items:[
+    {name:'名物うなぎ丼 ～わさびを添えて～（小澤怜史）',price:1650},
+    {name:'友情海鮮ハネカレー（赤羽由紘）',price:1300},
+    {name:'海鮮ちゃんぽん（中村優斗）',price:1450},
+    {name:'"明太釜玉うどん"（内山壮真）',price:1200},
+    {name:'嵐を呼ぶ！木場のさば串',price:''},
+    {name:'牡蠣の浜焼き',price:''},
+    {name:'いかポッポ焼き',price:''},
+    {name:'海鮮盛り合わせ',price:''},
   ]},
   // ===== 外周エリア・キッチンカー =====
   {shop:'🏟️ じんカラキッチンカー（外周）',area:'外周',items:[
@@ -782,17 +793,27 @@ const JINGU_MENU=[
     {name:'群馬名物下仁田ネギじんカラ＆ポテト（伊藤琉偉）',price:1000},
   ]},
   {shop:'🐦 つばみキッチンカー（外周）',area:'外周',items:[
-    {name:'つばみ定食（数量限定）',price:''},
+    {name:'ごちそうコロネ（カツ）',price:800},
+    {name:'トマトサワー（岩田幸宏）',price:''},
+    {name:'つばみ定食 数量限定',price:''},
     {name:'つばみコラボドリンク各種',price:''},
   ]},
   {shop:'🌯 ハッピーケバブ（外周）',area:'外周',items:[
-    {name:'ケバブ',price:''},
+    {name:'テリヤキチーズケバブ丼（山野太一）',price:1200},
+    {name:'アボカド＆チェダーチキンボックス',price:''},
     {name:'ケバブサンド',price:''},
+    {name:'ケバブ（単品）',price:''},
+  ]},
+  {shop:'🌀 ブンブンマルGO！（外周）',area:'外周',items:[
+    {name:'極旨！海鮮チャジャン麺（池山監督）',price:''},
+    {name:'定食各種',price:''},
   ]},
   {shop:'☕ T-gauge coffee（外周）',area:'外周',items:[
+    {name:'ゴロゴロストロベリーシェイク',price:900},
+    {name:'鳴門金時揚げたてドーナツパフェ',price:900},
+    {name:'エチオピア産コールドブリューフロート',price:''},
     {name:'カフェラテ',price:''},
-    {name:'エチオピア産コーヒー',price:''},
-    {name:'フルーツシェイク',price:''},
+    {name:'エチオピア産コーヒー（ストレート）',price:''},
   ]},
   {shop:'🍢 もつの助（外周）',area:'外周',items:[
     {name:'もつ煮込み',price:''},
@@ -812,7 +833,7 @@ function AddForm({initial,onSave,onCancel}){
   const[fetchError,setFetchError]=useState('');
   const[fetchVia,setFetchVia]=useState('');
   const[selectedGame,setSelectedGame]=useState(null); // the chosen game object
-  const[detail,setDetail]=useState(null);   // fetchSpaiaGameDetail result
+  const[detail,setDetail]=useState(initial?.spaiaDetail||null);   // fetchSpaiaGameDetail result
   const[detailLoading,setDetailLoading]=useState(false);
   const[detailError,setDetailError]=useState('');
   const[photoLoading,setPhotoLoading]=useState(false);
